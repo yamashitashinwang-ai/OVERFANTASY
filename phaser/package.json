@@ -2,15 +2,17 @@
   "name": "overfantasy",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node test/run-all.mjs",
+    "test": "tsx test/run-all.ts",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
-    "test:dump": "node test/probe-dump.mjs",
-    "lint": "eslint src test"
+    "test:dump": "tsx test/probe-dump.ts",
+    "lint": "eslint src test",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "debug": "^4.4.3",
@@ -18,10 +20,17 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/debug": "^4.1.13",
+    "@types/node": "^25.9.1",
     "@vitest/ui": "^4.1.7",
     "eslint": "^10.4.0",
     "globals": "^17.6.0",
     "happy-dom": "^20.9.0",
+    "jiti": "^2.7.0",
+    "playwright": "^1.60.0",
+    "tsx": "^4.22.3",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.60.0",
     "vite": "^6.0.0",
     "vitest": "^4.1.7"
   }

@@ -1,0 +1,132 @@
+// Combat — target search + attack-shape geometry. Pure logic over state +
+// weapon spec. No physics, no DOM.
+
+import { state, getAttackEffect, setAttackEffect } from '../../runtime/state.ts';
+import { tile } from '../../runtime/constants.ts';
+import { angleBetween, dist } from '../math.ts';
+import { uiState, isPlaying } from '../../runtime/ui-state.ts';
+import { currentWeapon } from './weapon.ts';
+import type { ActorState, AttackEffect, GearCatalogItem, Vector2 } from '../types.ts';
+
+type EntityFilter = (entity: ActorState) => boolean;
+
+interface WeaponShapeSpec {
+  name: string;
+  type?: string;
+  range?: number;
+}
+
+export function nearestEntity(range = 1.3, filter: EntityFilter = () => true): ActorState | null {
+  let best: ActorState | null = null;
+  let bestD = Infinity;
+  for (const e of state.entities) {
+    if (!e.alive || !filter(e)) continue;
+    const d = dist(state.player, e);
+    if (d < range && d < bestD) {
+      best = e;
+      bestD = d;
+    }
+  }
+  return best;
+}
+
+export function bodyGap(a: Vector2 & { r?: number }, b: Vector2 & { r?: number }): number {
+  const radiusA = (a.r || 0) / tile;
+  const radiusB = (b.r || 0) / tile;
+  return Math.max(0, dist(a, b) - radiusA - radiusB);
+}
+
+export function nearestAttackTarget(range: number, filter: EntityFilter = () => true): ActorState | null {
+  let best: ActorState | null = null;
+  let bestGap = Infinity;
+  for (const e of state.entities) {
+    if (!e.alive || !filter(e)) continue;
+    const gap = bodyGap(state.player, e);
+    if (gap <= range && gap < bestGap) {
+      best = e;
+      bestGap = gap;
+    }
+  }
+  return best;
+}
+
+export function attackSpecForWeapon(weapon: WeaponShapeSpec, angle: number): AttackEffect {
+  const playerRadius = state.player.r / tile;
+  const weaponType = weapon.type || '';
+  const weaponRange = weapon.range || 1.2;
+  if (weaponType === "匕首") {
+    return { shape: "sector", effect: "slash", angle, reach: weaponRange + playerRadius, halfAngle: 0.86, duration: 0.13, color: "#eaf7ff", lineWidth: 3 };
+  }
+  if (weaponType.includes("剑")) {
+    return { shape: "sector", effect: "slash", angle, reach: weaponRange + playerRadius, halfAngle: weapon.name === "剑的概念" ? 1.16 : 1.02, duration: weapon.name === "剑的概念" ? 0.2 : 0.17, color: weapon.name === "剑的概念" ? "#fff4b0" : "#dbe4ea", lineWidth: weapon.name === "剑的概念" ? 5 : 4 };
+  }
+  if (weaponType === "长枪") {
+    return { shape: "line", effect: "thrust", angle, reach: weaponRange + playerRadius, halfWidth: 0.28, duration: 0.16, color: "#dbe4ea", lineWidth: 4 };
+  }
+  if (weaponType === "锤") {
+    const radius = Math.max(0.9, weaponRange * 0.85);
+    return { shape: "impact", effect: "hammer", angle, centerDist: radius * 0.72, radius, duration: 0.22, color: "#f3c45b", lineWidth: 5 };
+  }
+  if (weaponType === "魔物") {
+    return { shape: "sector", effect: "claw", angle, reach: Math.min(weaponRange, 0.92) + playerRadius, halfAngle: Math.PI / 2, duration: 0.14, color: "#d986ff", lineWidth: 3 };
+  }
+  return { shape: "sector", effect: "slash", angle, reach: weaponRange + playerRadius, halfAngle: 0.95, duration: 0.16, color: "#dbe4ea", lineWidth: 3 };
+}
+
+export function attackTargetScore(e: ActorState, spec: AttackEffect): number {
+  const p = state.player;
+  const dx = e.x - p.x;
+  const dy = e.y - p.y;
+  const targetRadius = (e.r || 0) / tile;
+  const d = Math.hypot(dx, dy);
+  const dirX = Math.cos(spec.angle);
+  const dirY = Math.sin(spec.angle);
+  if ((spec.shape === "sector" || spec.shape === "claw") && d <= targetRadius + (p.r / tile) * 0.65) return d;
+  if (spec.shape === "sector" || spec.shape === "claw") {
+    if (d > spec.reach + targetRadius) return Infinity;
+    const targetAngle = Math.atan2(dy, dx);
+    const angularBuffer = Math.asin(Math.min(1, targetRadius / Math.max(d, 0.01)));
+    return angleBetween(targetAngle, spec.angle) <= spec.halfAngle + angularBuffer ? d : Infinity;
+  }
+  if (spec.shape === "line") {
+    const forward = dx * dirX + dy * dirY;
+    const side = Math.abs(dx * -dirY + dy * dirX);
+    if (forward < -targetRadius || forward > spec.reach + targetRadius) return Infinity;
+    return side <= spec.halfWidth + targetRadius ? forward + side * 0.35 : Infinity;
+  }
+  if (spec.shape === "impact") {
+    const cx = p.x + dirX * spec.centerDist;
+    const cy = p.y + dirY * spec.centerDist;
+    const impactD = Math.hypot(e.x - cx, e.y - cy);
+    return impactD <= spec.radius + targetRadius ? impactD : Infinity;
+  }
+  return Infinity;
+}
+
+export function nearestAttackShapeTarget(spec: AttackEffect, filter: EntityFilter = () => true): ActorState | null {
+  let best: ActorState | null = null;
+  let bestScore = Infinity;
+  for (const e of state.entities) {
+    if (!e.alive || !filter(e)) continue;
+    const score = attackTargetScore(e, spec);
+    if (score < bestScore) {
+      best = e;
+      bestScore = score;
+    }
+  }
+  return best;
+}
+
+export function startAttackEffect(weapon: GearCatalogItem, spec: AttackEffect, hit = false, critical = false) {
+  setAttackEffect({ ...spec, weaponType: weapon.type, weaponName: weapon.name, time: 0, hit, critical });
+}
+
+export function attackEntityFilter(e: ActorState): boolean {
+  if (state.player.monsterForm) return e.faction !== "monster";
+  return true;
+}
+
+export function canUseWorldActions() {
+  return isPlaying() && !uiState.backpackOpen && !uiState.questOpen
+    && !uiState.shopOpen && !uiState.forgeOpen && !uiState.magicOpen;
+}
