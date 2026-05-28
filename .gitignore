@@ -1,1 +1,6 @@
 .ssh/
+node_modules/
+node_modules
+dist/
+test-output/
+.DS_Store
