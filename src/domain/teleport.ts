@@ -2,6 +2,7 @@ import DATA from '../data.ts';
 import { state } from '../runtime/state.ts';
 import { log, toast } from '../runtime/services.ts';
 import { loadScene } from './dungeon.ts';
+import { currentMapExit } from './map-exits.ts';
 import { parsePortalAction, resolveSceneSpawn } from './portal.ts';
 import type { WorldObjectState } from './types.ts';
 
@@ -42,4 +43,11 @@ export function teleportThroughPortal(obj: WorldObjectState): boolean {
   state.player.portalCooldown = TELEPORT_COOLDOWN_SECONDS;
   loadScene(targetScene, resolved.x, resolved.y, `穿过${obj.name}，来到${sceneNames[targetScene] || '新区域'}。`);
   return true;
+}
+
+export function triggerMapExitIfNeeded(): boolean {
+  if (state.mode !== 'world' || state.player.portalCooldown > 0) return false;
+  const exit = currentMapExit();
+  if (!exit) return false;
+  return teleportThroughPortal(exit);
 }

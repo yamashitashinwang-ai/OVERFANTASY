@@ -153,7 +153,8 @@ export function syncEntityDisplay() {
 
 export function syncObjectDisplay() {
   if (!D.pScene) return;
-  const currentIds = new Set(state.objects.map(o => o.id));
+  const visibleObjects = state.objects.filter(o => o.kind !== 'mapExit');
+  const currentIds = new Set(visibleObjects.map(o => o.id));
   for (const [id, display] of D.objectDisplayMap) {
     if (!currentIds.has(id)) {
       display.rect.destroy();
@@ -162,7 +163,7 @@ export function syncObjectDisplay() {
       D.objectDisplayMap.delete(id);
     }
   }
-  for (const o of state.objects) {
+  for (const o of visibleObjects) {
     let display = D.objectDisplayMap.get(o.id);
     if (!display) {
       const rectW = o.w * tile - 6;
@@ -175,8 +176,8 @@ export function syncObjectDisplay() {
       );
       rect.setStrokeStyle(3, 0x0b0e12);
       rect.setDepth(1);
-      // Solid buildings get static physics bodies. Portals and exits are walk-through (no body).
-      const isWalkThrough = (o.kind === 'portal') || (o.action === 'exit');
+      // Solid buildings get static physics bodies. Road signs, portals and exits are walk-through.
+      const isWalkThrough = (o.kind === 'portal') || (o.kind === 'roadSign') || (o.action === 'exit');
       if (!isWalkThrough && D.staticBuildingsGroup) {
         D.staticBuildingsGroup.add(rect);
         const body = rect.body as { updateFromGameObject?: () => void } | null;
@@ -202,7 +203,7 @@ export function syncObjectDisplay() {
     const cx = o.x + o.w / 2;
     const cy = o.y + o.h / 2;
     const playerDist = Math.hypot(state.player.x - cx, state.player.y - cy);
-    const showLabel = o.kind === 'portal' || playerDist < 4;
+    const showLabel = o.kind === 'portal' || o.kind === 'roadSign' || playerDist < 4;
     display.labelBg.setVisible(showLabel);
     display.labelText.setVisible(showLabel);
   }

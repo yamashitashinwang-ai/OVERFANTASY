@@ -309,9 +309,12 @@ export interface WorldObjectState extends OwnedRecord, Vector2 {
   action?: string;
   sourceScene?: SceneKey;
   portalId?: string;
+  exitZoneId?: string;
+  signForPortalId?: string;
   targetMapId?: SceneKey;
   targetScene?: SceneKey;
   targetSpawnId?: string;
+  visualOnly?: boolean;
   [key: string]: unknown;
 }
 

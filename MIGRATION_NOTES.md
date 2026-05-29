@@ -51,3 +51,59 @@ This probe is intentionally retained to prevent future regressions where unit te
 ### Scope Guard
 
 This note documents only the portal coordinate synchronization fix. It does not add or change combat, backpack, shop, forge, magic, race, death, or corruption systems.
+
+## 2026-05-29 - Automatic map exit zones
+
+### Change
+
+Outdoor region-boundary transitions no longer require standing near a portal object and pressing the interaction key.
+
+The old region-boundary portal connection data is still used, but `addPortal` now produces:
+
+- a visual `roadSign` object for the old sign/label location
+- a hidden walkable `mapExit` trigger zone at the appropriate map edge
+- road tiles leading into that edge zone so the exit reads as a path out of the map
+
+The original sign is now only a route marker. It does not carry a portal action and does not trigger map travel.
+
+### Teleport Type Boundaries
+
+There are two supported map-transition categories:
+
+1. Region-boundary exits
+
+   These connect two outdoor regions, such as White Bell Village / Morningwind Field to Spiritwood Forest. They should use protruding, walkable exit zones near the map edge and trigger automatically when the player enters the exit zone.
+
+2. Interior map entrances
+
+   These enter dungeons, buildings, underground spaces, ruins interiors, old royal city entrances, and similar contained spaces. They can be placed inside a map and do not need to sit on a map edge. Whether they auto-trigger or require interaction is a per-scene design choice.
+
+`旧王城入口` is an interior map entrance, not a region-boundary exit. It should not be converted into an edge exit zone just because it changes the player's location.
+
+### Execution Layer
+
+The teleport execution layer was not rewritten.
+
+Automatic exits still call the existing `teleportThroughPortal` path, so map changes continue to resolve:
+
+1. source map exit zone
+2. target map id
+3. target spawn id
+4. target map spawn coordinates
+
+The target position is still taken from the target map entrance table. It does not use the player's current source-map coordinates.
+
+### Verified Route
+
+`test/probe-portal-runtime.ts` now covers the live runtime path without pressing the interaction key:
+
+- standing near the old `north_exit_to_forest` road sign does not teleport
+- stepping into the `field:north_exit_to_forest` exit zone lands at `forest:south_entry_from_village`
+- stepping into the `forest:south_exit_to_village` exit zone lands at `field:north_entry_from_forest`
+- different positions inside the same exit zone still land at the same fixed target entrance
+- three repeated field/forest round trips keep the same target spawn coordinates
+- a short wait after each transition verifies that stale physics bodies do not overwrite the target position
+
+### Scope Guard
+
+This change only modifies portal trigger behavior and related map-edge road presentation. It does not add or change combat, backpack, shop, forge, magic, race, death, corruption, quests, UI systems, or maps.

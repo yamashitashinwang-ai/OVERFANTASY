@@ -31,6 +31,7 @@ import {
 import { tickInvariants } from '../runtime/invariants.ts';
 import { hasCorruptionControlLock, updateCorruption } from '../domain/corruption.ts';
 import { updateDeathSystem } from '../domain/death.ts';
+import { triggerMapExitIfNeeded } from '../domain/teleport.ts';
 
 // ── Re-exports for legacy reverse-imports ──────────────────────────────
 export { tile, W, H, worldW, worldH, viewW, viewH, magicChantTimeScale, backpackCategories };
@@ -231,6 +232,7 @@ export class GameScene extends Phaser.Scene {
         updateDeathSystem(dt);
         updateCorruption(dt);
         if (!hasCorruptionControlLock()) updatePlayer(dt);
+        triggerMapExitIfNeeded();
         updatePets(dt);
         updateEntities(dt);
         updatePetRemains(dt);
