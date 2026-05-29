@@ -55,6 +55,7 @@ export function resetRuntimeUi() {
   if (get.forgePanelEl) get.forgePanelEl.classList.add('hidden');
   uiState.magicOpen = false;
   if (get.magicPanelEl) get.magicPanelEl.classList.add('hidden');
+  uiState.corruptionChoiceOpen = false;
   if (get.pauseMenuEl) get.pauseMenuEl.classList.add('hidden');
   if (get.mainMenuEl) get.mainMenuEl.classList.add('hidden');
   htmlCache.backpack = '';

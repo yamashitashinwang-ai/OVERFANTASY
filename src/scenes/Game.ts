@@ -29,6 +29,8 @@ import {
   closePauseMenu, installButtonHandlers, installKeyBindings, installPointerInputs, installWorldTimers, updateWorld
 } from './game-scene-helpers.ts';
 import { tickInvariants } from '../runtime/invariants.ts';
+import { hasCorruptionControlLock, updateCorruption } from '../domain/corruption.ts';
+import { updateDeathSystem } from '../domain/death.ts';
 
 // ── Re-exports for legacy reverse-imports ──────────────────────────────
 export { tile, W, H, worldW, worldH, viewW, viewH, magicChantTimeScale, backpackCategories };
@@ -132,6 +134,7 @@ export class GameScene extends Phaser.Scene {
         import('../domain/combat/weapon.ts'),
         import('../domain/combat/targeting.ts'),
         import('../domain/player.ts'),
+        import('../domain/corruption.ts'),
         import('../domain/world.ts'),
         import('../domain/world-spawn.ts'),
         import('../domain/ai.ts'),
@@ -225,7 +228,9 @@ export class GameScene extends Phaser.Scene {
         // Player cooldowns tick down here — single canonical decay site,
         // matches original game.js behaviour. See runtime/player-cooldowns.js.
         tickPlayerCooldowns(state.player, dt);
-        updatePlayer(dt);
+        updateDeathSystem(dt);
+        updateCorruption(dt);
+        if (!hasCorruptionControlLock()) updatePlayer(dt);
         updatePets(dt);
         updateEntities(dt);
         updatePetRemains(dt);

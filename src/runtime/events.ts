@@ -1,11 +1,8 @@
 // Engine-agnostic event bus. Domain services publish facts ("player:hurt",
 // "quest:accepted", "inventory:itemAdded"); scenes and UI subscribe.
 //
-// Implementation: thin facade over Phaser.Events.EventEmitter so the same bus
-// works inside scenes (where EventEmitter is already loaded) without depending
-// on a 3rd-party event lib.
-
-import Phaser from 'phaser';
+// Implementation: tiny local event emitter. Keeping it engine-agnostic lets
+// pure domain tests import gameplay modules without booting Phaser.
 
 export const Events = {
   // Player lifecycle
@@ -64,6 +61,29 @@ export const Events = {
   INVARIANT_BROKEN:   'invariant:broken'        // { id, message, t }
 };
 
+type BusHandler = (...args: unknown[]) => void;
+
+class EventBus {
+  private listeners = new Map<string, Set<BusHandler>>();
+
+  on(event: string, handler: BusHandler) {
+    if (!this.listeners.has(event)) this.listeners.set(event, new Set());
+    this.listeners.get(event).add(handler);
+    return this;
+  }
+
+  off(event: string, handler?: BusHandler) {
+    if (!handler) this.listeners.delete(event);
+    else this.listeners.get(event)?.delete(handler);
+    return this;
+  }
+
+  emit(event: string, ...args: unknown[]) {
+    for (const handler of [...(this.listeners.get(event) || [])]) handler(...args);
+    return this;
+  }
+}
+
 // Singleton bus shared across the whole app. Scenes / domain modules import
 // `bus` and call .emit / .on / .off.
-export const bus = new Phaser.Events.EventEmitter();
+export const bus = new EventBus();

@@ -6,6 +6,7 @@ import { tile } from '../../runtime/constants.ts';
 import { angleBetween, dist } from '../math.ts';
 import { uiState, isPlaying } from '../../runtime/ui-state.ts';
 import { currentWeapon } from './weapon.ts';
+import { hasCorruptionControlLock } from '../corruption.ts';
 import type { ActorState, AttackEffect, GearCatalogItem, Vector2 } from '../types.ts';
 
 type EntityFilter = (entity: ActorState) => boolean;
@@ -128,5 +129,6 @@ export function attackEntityFilter(e: ActorState): boolean {
 
 export function canUseWorldActions() {
   return isPlaying() && !uiState.backpackOpen && !uiState.questOpen
-    && !uiState.shopOpen && !uiState.forgeOpen && !uiState.magicOpen;
+    && !uiState.shopOpen && !uiState.forgeOpen && !uiState.magicOpen
+    && !hasCorruptionControlLock();
 }

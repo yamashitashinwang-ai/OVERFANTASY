@@ -213,8 +213,10 @@ export interface PlayerState extends ActorState {
   r: number;
   hp: number;
   maxHp: number;
+  baseMaxHp: number;
   mp: number;
   maxMp: number;
+  baseMaxMp: number;
   stamina: number;
   gold: number;
   herbs: number;
@@ -237,12 +239,24 @@ export interface PlayerState extends ActorState {
   magicClues: FlagBag;
   mpRegenLock: number;
   monsterForm: boolean;
+  originalRace: string | null;
+  corruption: number;
+  corruptionHitCooldown: number;
+  corruptionStageWarnings: FlagBag;
+  corruptionChoicePending: boolean;
+  corruptionRampageWarningTimer: number;
+  corruptionRampageTimer: number;
+  corruptionRampageAttackCooldown: number;
+  reversePotions: number;
+  deathFatigue: number;
+  deathFatigueReliefCooldown: number;
   spouse: string | null;
   conceptSword: boolean;
   lastHitBy: ActorState | null;
   invuln: number;
   attackCooldown: number;
   giftCooldown: number;
+  portalCooldown: number;
   dodgeCooldown: number;
   dodgeTimer: number;
   blockTimer: number;
@@ -293,6 +307,11 @@ export interface WorldObjectState extends OwnedRecord, Vector2 {
   h: number;
   color: string;
   action?: string;
+  sourceScene?: SceneKey;
+  portalId?: string;
+  targetMapId?: SceneKey;
+  targetScene?: SceneKey;
+  targetSpawnId?: string;
   [key: string]: unknown;
 }
 
@@ -306,6 +325,70 @@ export interface PickupState extends OwnedRecord, Vector2 {
   sourceId?: string | null;
   taken?: boolean;
   takenBy?: string | null;
+  scene?: SceneKey;
+  contents?: LostPackageContents;
+}
+
+export interface LostPackageContents {
+  gold?: number;
+  herbs?: number;
+  potions?: number;
+  arrows?: number;
+  materials?: ResourceBag;
+  resources?: ResourceBag;
+  gearBag?: string[];
+}
+
+export interface LostPackageState extends OwnedRecord, Vector2 {
+  id: string;
+  scene: SceneKey;
+  name: string;
+  color: string;
+  contents: LostPackageContents;
+  taken?: boolean;
+  createdAt: number;
+  deathScene?: SceneKey;
+  deathX?: number;
+  deathY?: number;
+}
+
+export interface DeathInventorySnapshot {
+  gold: number;
+  herbs: number;
+  potions: number;
+  arrows: number;
+  rings: number;
+  reversePotions: number;
+  resources: ResourceBag;
+  materials: ResourceBag;
+  gearBag: string[];
+}
+
+export interface DeathRecordState {
+  id: string;
+  scene: SceneKey;
+  mode: string;
+  x: number;
+  y: number;
+  sourceName: string;
+  sourceKind?: string;
+  sourceSpecies?: string;
+  sourceFaction?: string;
+  sourceRegion?: string;
+  reason: string;
+  inventoryBefore: DeathInventorySnapshot;
+  corruptionBefore: number;
+  corruptionAfter: number;
+  lostPackageId?: string | null;
+  permanentLosses?: LostPackageContents;
+  createdAt: number;
+}
+
+export interface DeathRespawnState {
+  scene: SceneKey;
+  x: number;
+  y: number;
+  message: string;
 }
 
 export interface QuestState extends OwnedRecord {
@@ -371,6 +454,11 @@ export interface GameState {
   newsClock: number;
   spawnClock: number;
   toastTimer: number;
+  shrineLoads: Record<string, number>;
+  shrineLoadDecayClock: number;
+  lostPackages: LostPackageState[];
+  lastDeath: DeathRecordState | null;
+  pendingDeathRespawn: DeathRespawnState | null;
   player: PlayerState;
   map: string[][];
   solids: WorldObjectState[];

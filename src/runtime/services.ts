@@ -17,6 +17,6 @@ export function log(text: string) {
   toast(text);
 }
 
-export function toast(text: string) {
-  bus.emit(Events.TOAST_SHOWN, { text });
+export function toast(text: string, durationMs = 4200) {
+  bus.emit(Events.TOAST_SHOWN, { text, durationMs });
 }

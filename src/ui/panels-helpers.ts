@@ -74,7 +74,10 @@ export function backpackItems(category: string): BackpackItem[] {
     }).filter(Boolean);
   }
   if (category === "important") {
-    return p.rings > 0 ? [{ id: "ring", name: "戒指", count: p.rings, desc: "请将其交付于至爱之人。" }] : [];
+    return [
+      p.rings > 0 && { id: "ring", name: "戒指", count: p.rings, desc: "请将其交付于至爱之人。" },
+      (p.reversePotions || 0) > 0 && { id: "reversePotion", name: "逆魔药", count: p.reversePotions, desc: "极稀有药剂，可以解除魔物化并将魔化值降到10。", action: "use" }
+    ].filter(Boolean);
   }
   return [];
 }

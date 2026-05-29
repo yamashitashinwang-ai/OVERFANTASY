@@ -15,12 +15,18 @@ import { readMovementVector, isRunning, dodgePressed } from '../runtime/input.ts
 import { log } from '../runtime/services.ts';
 import { autoSave } from './game-flow.ts';
 import { playerDodge } from './combat/actions.ts';
+import { claimLostPackage } from './lost-packages.ts';
+import { deathFatigueStaminaRegenMultiplier } from './death.ts';
 
 export function pickupItems() {
   for (const p of state.pickups) {
     if (p.taken) continue;
     if (p.reservedFor && p.reservedFor !== currentPlayerId()) continue;
     if (Math.hypot(state.player.x - p.x, state.player.y - p.y) < 0.75) {
+      if (p.kind === "lostPackage") {
+        claimLostPackage(p);
+        continue;
+      }
       p.taken = true;
       p.takenBy = currentPlayerId();
       if (p.kind === "herb") state.player.herbs += p.value;
@@ -42,11 +48,10 @@ export function pickupItems() {
         state.player.conceptSword = true;
         autoSave();
       }
-  if (p.kind === "cleanse") {
-    state.player.monsterForm = false;
-    state.player.hp = state.player.maxHp;
-    restoreInjuredPets();
-  }
+      if (p.kind === "cleanse") {
+        state.player.corruption = Math.max(0, (state.player.corruption || 0) - 25);
+        restoreInjuredPets();
+      }
       log(p.kind === "arrow" ? "拾回了箭。" : `拾取了${p.name}。`);
     }
   }
@@ -73,6 +78,6 @@ export function updatePlayer(dt: number) {
   }
   // Cooldowns are decremented once per frame by GameScene via
   // tickPlayerCooldowns; updatePlayer only reads the remaining duration.
-  if (state.player.stamina < 30 && !state.player.running) state.player.stamina += dt * (0.8 + 30 * 0.02) * raceStaminaRegenMultiplier();
+  if (state.player.stamina < 30 && !state.player.running) state.player.stamina += dt * (0.8 + 30 * 0.02) * raceStaminaRegenMultiplier() * deathFatigueStaminaRegenMultiplier();
   pickupItems();
 }

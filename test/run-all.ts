@@ -16,6 +16,7 @@ const probes = [
   ['probe-deep.ts',              '16 domain API checks'],
   ['probe-ui-flows.ts',          '15 button-click UI flow checks'],
   ['probe-combat-checklist.ts',  '24 combat/AI/damage/quest/magic checks'],
+  ['probe-portal-runtime.ts',    'runtime portal interaction path checks'],
   ['probe-live-combat.ts',       '4 live-play enemy-damage checks'],
   ['probe-weapons.ts',           '5 weapon-coverage checks (every type)'],
   ['probe-invariants.ts',        '~12s runtime invariant guard'],

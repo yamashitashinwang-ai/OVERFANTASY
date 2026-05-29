@@ -31,6 +31,7 @@ interface DisplayState {
   pScene: Phaser.Scene | null;
   playerCircle: PhysicsArc | null;
   weaponGfx: Phaser.GameObjects.Graphics | null;
+  corruptionGfx: Phaser.GameObjects.Graphics | null;
   arrowGfx: Phaser.GameObjects.Graphics | null;
   effectsGfx: Phaser.GameObjects.Graphics | null;
   hpBarsGfx: Phaser.GameObjects.Graphics | null;
@@ -76,6 +77,7 @@ export const display: DisplayState = {
   // Persistent display GameObjects
   playerCircle: null,
   weaponGfx: null,
+  corruptionGfx: null,
   arrowGfx: null,
   effectsGfx: null,
   hpBarsGfx: null,

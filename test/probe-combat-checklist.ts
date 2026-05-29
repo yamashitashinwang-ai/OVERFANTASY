@@ -55,11 +55,21 @@ async function setupSoloEnemy(overrides = {}) {
     s.entities = [];
     s.player.hp = 42;
     s.player.maxHp = 42;
+    s.player.baseMaxHp = 42;
+    s.player.maxMp = 18;
+    s.player.baseMaxMp = 18;
     s.player.invuln = 0;
     s.player.blockTimer = 0;
     s.player.dodgeTimer = 0;
     s.player.def = 0;
     s.player.monsterForm = false;
+    s.player.corruption = 0;
+    s.player.corruptionHitCooldown = 0;
+    s.player.corruptionChoicePending = false;
+    s.player.corruptionRampageWarningTimer = 0;
+    s.player.corruptionRampageTimer = 0;
+    s.player.deathFatigue = 0;
+    s.player.deathFatigueReliefCooldown = 0;
     s.player.gear.body = null;
     s.player.gear.head = null;
     s.player.gear.legs = null;
@@ -197,22 +207,39 @@ await test('REQ-6 — Defense reduces incoming damage (with armor)', async () =>
   else fail(`HP=${s.hp} def=${s.def}`);
 });
 
-// ─── Requirement 7: monster kills player → monsterForm ────────────────────
-await test('REQ-7 — Defeat by monster → monsterForm with HP=ceil(maxHp*0.65)', async () => {
+// ─── Requirement 7: monster kills player → corruption, then normal respawn if below threshold
+await test('REQ-7 — Defeat by monster adds corruption before normal respawn', async () => {
   const s = await page.evaluate(() => {
     window.__state.player.hp = 1;
     window.__state.player.maxHp = 42;
+    window.__state.player.baseMaxHp = 42;
+    window.__state.player.maxMp = 18;
+    window.__state.player.baseMaxMp = 18;
     window.__state.player.invuln = 0;
     window.__state.player.blockTimer = 0;
     window.__state.player.def = 0;
     window.__state.player.gear = { weapon: 'trainingSword', head: null, body: null, legs: null, feet: null, accessory: null };
     window.__state.player.gearMods = {};
     window.__state.player.monsterForm = false;
+    window.__state.player.corruption = 0;
+    window.__state.player.corruptionHitCooldown = 0;
+    window.__state.player.corruptionChoicePending = false;
+    window.__state.player.deathFatigue = 0;
+    window.__state.player.deathFatigueReliefCooldown = 0;
+    window.__state.scene = 'forest';
     window.__api.damagePlayer(99, { name: '怪物', faction: 'monster', alive: true });
-    return { hp: window.__state.player.hp, mf: window.__state.player.monsterForm };
+    return {
+      hp: window.__state.player.hp,
+      maxHp: window.__state.player.maxHp,
+      mf: window.__state.player.monsterForm,
+      corruption: window.__state.player.corruption,
+      choice: window.__state.player.corruptionChoicePending,
+      scene: window.__state.scene,
+      fatigue: window.__state.player.deathFatigue
+    };
   });
-  if (s.mf === true && s.hp === 28) ok(`monsterForm=true hp=${s.hp}`);
-  else fail(`monsterForm=${s.mf} hp=${s.hp}`);
+  if (!s.mf && !s.choice && s.fatigue === 1 && s.hp === Math.ceil(s.maxHp * 0.5) && s.scene === 'field' && s.corruption >= 41 && s.corruption <= 43) ok(`corruption=${s.corruption} hp=${s.hp}/${s.maxHp} scene=${s.scene}`);
+  else fail(`monsterForm=${s.mf} choice=${s.choice} hp=${s.hp}/${s.maxHp} scene=${s.scene} corruption=${s.corruption} fatigue=${s.fatigue}`);
 });
 
 // ─── Requirement 8: defeat in monsterForm → respawn at shrine ─────────────
@@ -220,22 +247,29 @@ await test('REQ-8 — Defeat in monsterForm → teleport to white shrine', async
   const s = await page.evaluate(() => {
     window.__state.player.hp = 1;
     window.__state.player.maxHp = 42;
+    window.__state.player.baseMaxHp = 42;
+    window.__state.player.maxMp = 18;
+    window.__state.player.baseMaxMp = 18;
     window.__state.player.invuln = 0;
     window.__state.player.blockTimer = 0;
     window.__state.player.def = 0;
     window.__state.player.gear = { weapon: 'trainingSword', head: null, body: null, legs: null, feet: null, accessory: null };
     window.__state.player.gearMods = {};
     window.__state.player.monsterForm = true;
+    window.__state.player.deathFatigue = 0;
+    window.__state.player.deathFatigueReliefCooldown = 0;
     window.__state.scene = 'forest';
     window.__api.damagePlayer(99, { name: '怪物', faction: 'monster', alive: true });
     return {
       hp: window.__state.player.hp,
+      maxHp: window.__state.player.maxHp,
       scene: window.__state.scene,
-      invuln: window.__state.player.invuln
+      invuln: window.__state.player.invuln,
+      fatigue: window.__state.player.deathFatigue
     };
   });
-  if (s.hp === 21 && s.scene === 'field' && s.invuln === 1.2) ok(`hp=${s.hp} scene=${s.scene} invuln=${s.invuln}`);
-  else fail(`hp=${s.hp} scene=${s.scene} invuln=${s.invuln}`);
+  if (s.hp === Math.ceil(s.maxHp * 0.5) && s.fatigue === 1 && s.scene === 'field' && s.invuln === 1.2) ok(`hp=${s.hp}/${s.maxHp} scene=${s.scene} invuln=${s.invuln}`);
+  else fail(`hp=${s.hp}/${s.maxHp} scene=${s.scene} invuln=${s.invuln} fatigue=${s.fatigue}`);
 });
 
 // ─── Requirement 9: thorns counter-damage ────────────────────────────────

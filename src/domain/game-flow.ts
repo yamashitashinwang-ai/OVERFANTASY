@@ -8,7 +8,7 @@ import { bus, Events } from '../runtime/events.ts';
 import { setAutoSaveHandler } from '../runtime/autosave.ts';
 import { uiState, isPlaying } from '../runtime/ui-state.ts';
 import { log } from '../runtime/services.ts';
-import { clonePlain, replaceObject } from './math.ts';
+import { clamp, clonePlain, replaceObject } from './math.ts';
 import {
   worldOwnerId,
   currentPlayerId, currentPartyId,
@@ -34,6 +34,9 @@ import { renderMainMenu } from '../ui/menus.ts';
 import { htmlCache } from '../ui/cache.ts';
 import { get as domGet } from '../ui/dom.ts';
 import { installPlayerCooldowns } from '../runtime/player-cooldowns.ts';
+import { normalizeCorruptionState, resumeCorruptionStateAfterLoad } from './corruption.ts';
+import { normalizeDeathState } from './death.ts';
+import { syncLostPackagePickupsForScene } from './lost-packages.ts';
 import type { GearSlot } from './types.ts';
 
 const { regions } = DATA;
@@ -74,6 +77,22 @@ export function ensureStateShape() {
   syncResourceTotals();
   if (!Array.isArray(state.player.magicKnown)) state.player.magicKnown = [];
   if (!state.player.magicClues || typeof state.player.magicClues !== 'object') state.player.magicClues = {};
+  if (!state.player.corruptionStageWarnings || typeof state.player.corruptionStageWarnings !== 'object') state.player.corruptionStageWarnings = {};
+  state.player.corruption = clamp(Number(state.player.corruption || 0), 0, 100);
+  state.player.corruptionHitCooldown = Math.max(0, Number(state.player.corruptionHitCooldown || 0));
+  state.player.corruptionChoicePending = !!state.player.corruptionChoicePending;
+  state.player.corruptionRampageWarningTimer = Math.max(0, Number(state.player.corruptionRampageWarningTimer || 0));
+  state.player.corruptionRampageTimer = Math.max(0, Number(state.player.corruptionRampageTimer || 0));
+  state.player.corruptionRampageAttackCooldown = Math.max(0, Number(state.player.corruptionRampageAttackCooldown || 0));
+  state.player.reversePotions = Math.max(0, Math.floor(Number(state.player.reversePotions || 0)));
+  if (state.player.originalRace === undefined) state.player.originalRace = null;
+  if (!state.shrineLoads || typeof state.shrineLoads !== 'object' || Array.isArray(state.shrineLoads)) state.shrineLoads = {};
+  state.shrineLoadDecayClock = Math.max(0, Number(state.shrineLoadDecayClock || 0));
+  if (!Array.isArray(state.lostPackages)) state.lostPackages = [];
+  if (state.lastDeath === undefined) state.lastDeath = null;
+  if (state.pendingDeathRespawn === undefined) state.pendingDeathRespawn = null;
+  normalizeCorruptionState();
+  normalizeDeathState();
   if (!Array.isArray(state.map)) state.map = [];
   if (!Array.isArray(state.solids)) state.solids = [];
   if (!Array.isArray(state.entities)) state.entities = [];
@@ -147,6 +166,8 @@ export function resetGameState(race = '人类') {
   rebuildDisplay();
   renderGearPanel();
   applyLanguage();
+  normalizeCorruptionState();
+  normalizeDeathState();
 }
 
 export function startNewGame(race = '人类') {
@@ -168,6 +189,7 @@ export function startLoadedSave(saveId: string) {
   ensureStateShape();
   state.settings.language = language;
   uiState.currentSaveId = save.id;
+  syncLostPackagePickupsForScene(state.scene);
   logs.length = 0;
   if (domGet.logEl) domGet.logEl.innerHTML = '';
   resetRuntimeUi();
@@ -178,6 +200,7 @@ export function startLoadedSave(saveId: string) {
   renderGearPanel();
   log(`读取了${save.name}。`);
   bus.emit(Events.GAME_LOADED, { saveId });
+  resumeCorruptionStateAfterLoad();
 }
 
 export function continueLatestSave() {

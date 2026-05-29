@@ -23,6 +23,7 @@ import { openCurrentQuestPanel, closeQuestPanel } from '../ui/quest.ts';
 import { renderMainMenu } from '../ui/menus.ts';
 import { htmlCache } from '../ui/cache.ts';
 import { get } from '../ui/dom.ts';
+import { hasCorruptionControlLock } from '../domain/corruption.ts';
 import type { Vector2 } from '../domain/types.ts';
 
 const { regions } = DATA;
@@ -80,7 +81,7 @@ export function installWorldTimers(scene: Phaser.Scene) {
 }
 
 export function openPauseMenu() {
-  if (!isPlaying()) return;
+  if (!isPlaying() || hasCorruptionControlLock()) return;
   uiState.appMode = 'paused';
   if (runtime.pSceneRef) {
     runtime.pSceneRef.scene.launch('PauseScene');
@@ -95,7 +96,7 @@ export function closePauseMenu() {
 // Gate DOM action buttons: any modal panel open or non-playing mode should
 // swallow the event so the world doesn't receive it.
 export function blockWorldAction(event: Event): boolean {
-  if (!uiState.backpackOpen && !uiState.questOpen && !uiState.shopOpen && !uiState.forgeOpen && !uiState.magicOpen && isPlaying()) return false;
+  if (!uiState.backpackOpen && !uiState.questOpen && !uiState.shopOpen && !uiState.forgeOpen && !uiState.magicOpen && isPlaying() && !hasCorruptionControlLock()) return false;
   event.preventDefault();
   return true;
 }
@@ -115,14 +116,14 @@ export function installPointerInputs(scene: Phaser.Scene) {
     const wy = pointer.worldY / TILE;
     runtime.aimVector = normalizeWithAim(wx - state.player.x, wy - state.player.y);
     runtime.aimWorld = { x: wx, y: wy };
-    if (!isPlaying() || uiState.backpackOpen || uiState.questOpen || uiState.shopOpen || uiState.forgeOpen || uiState.magicOpen) return;
+    if (!isPlaying() || hasCorruptionControlLock() || uiState.backpackOpen || uiState.questOpen || uiState.shopOpen || uiState.forgeOpen || uiState.magicOpen) return;
     if (pointer.leftButtonDown()) {
       if (!beginBowCharge()) playerAttack();
     }
     if (pointer.rightButtonDown()) playerDefend();
   });
   scene.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
-    if (pointer.leftButtonReleased()) releaseBowCharge();
+    if (!hasCorruptionControlLock() && pointer.leftButtonReleased()) releaseBowCharge();
   });
 }
 
@@ -135,11 +136,11 @@ export function installButtonHandlers() {
     btnGift: (event: MouseEvent) => { if (!blockWorldAction(event)) gift(); },
     btnRest: (event: MouseEvent) => { if (!blockWorldAction(event)) rest(); },
     btnBackpack: (event: MouseEvent) => {
-      if (!isPlaying() || uiState.questOpen || uiState.shopOpen || uiState.forgeOpen || uiState.magicOpen) { event.preventDefault(); return; }
+      if (!isPlaying() || hasCorruptionControlLock() || uiState.questOpen || uiState.shopOpen || uiState.forgeOpen || uiState.magicOpen) { event.preventDefault(); return; }
       toggleBackpack();
     },
     btnMagic: (event: MouseEvent) => {
-      if (!isPlaying() || uiState.backpackOpen || uiState.questOpen || uiState.shopOpen || uiState.forgeOpen) { event.preventDefault(); return; }
+      if (!isPlaying() || hasCorruptionControlLock() || uiState.backpackOpen || uiState.questOpen || uiState.shopOpen || uiState.forgeOpen) { event.preventDefault(); return; }
       openMagicPanel('book');
     }
   };
@@ -170,12 +171,12 @@ export function installKeyBindings(scene: Phaser.Scene) {
   };
 
   bindActions(scene, {
-    'B':   () => { if (isPlaying() && !uiState.questOpen && !uiState.shopOpen && !uiState.forgeOpen && !uiState.magicOpen) toggleBackpack(); },
-    'J':   () => { if (isPlaying() && !uiState.backpackOpen && !uiState.shopOpen && !uiState.forgeOpen && !uiState.magicOpen) openCurrentQuestPanel(); },
-    'F':   () => { if (isPlaying() && !uiState.backpackOpen && !uiState.questOpen && !uiState.shopOpen && !uiState.forgeOpen && !uiState.magicOpen) openMagicPanel('book'); },
-    'E':   () => { if (isPlaying() && !modalKey()) { if (!handlePetRescue() && !helpWounded()) talkOrUse(); } },
-    'G':   () => { if (isPlaying() && !modalKey()) gift(); },
-    'R':   () => { if (isPlaying() && !modalKey()) rest(); },
+    'B':   () => { if (isPlaying() && !hasCorruptionControlLock() && !uiState.questOpen && !uiState.shopOpen && !uiState.forgeOpen && !uiState.magicOpen) toggleBackpack(); },
+    'J':   () => { if (isPlaying() && !hasCorruptionControlLock() && !uiState.backpackOpen && !uiState.shopOpen && !uiState.forgeOpen && !uiState.magicOpen) openCurrentQuestPanel(); },
+    'F':   () => { if (isPlaying() && !hasCorruptionControlLock() && !uiState.backpackOpen && !uiState.questOpen && !uiState.shopOpen && !uiState.forgeOpen && !uiState.magicOpen) openMagicPanel('book'); },
+    'E':   () => { if (isPlaying() && !hasCorruptionControlLock() && !modalKey()) { if (!handlePetRescue() && !helpWounded()) talkOrUse(); } },
+    'G':   () => { if (isPlaying() && !hasCorruptionControlLock() && !modalKey()) gift(); },
+    'R':   () => { if (isPlaying() && !hasCorruptionControlLock() && !modalKey()) rest(); },
     'ESC': () => {
       if (isMenuOpen()) {
         if (uiState.menuView !== 'main') {
@@ -187,7 +188,7 @@ export function installKeyBindings(scene: Phaser.Scene) {
         }
         return;
       }
-      routeEscape(modalKey, modalClosers, () => { if (isPlaying()) openPauseMenu(); });
+      routeEscape(modalKey, modalClosers, () => { if (isPlaying() && !hasCorruptionControlLock()) openPauseMenu(); });
     }
   });
 

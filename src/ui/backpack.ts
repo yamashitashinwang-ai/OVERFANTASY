@@ -15,6 +15,7 @@ import { currentWeapon, gearLabel, gearModList, slotName, refreshCombatStats } f
 import { materialCount, sellableMaterialCount, materialSummary, equipGear } from '../domain/inventory.ts';
 import { log, toast } from '../runtime/services.ts';
 import { autoSave } from '../domain/game-flow.ts';
+import { useReversePotion } from '../domain/corruption.ts';
 
 export function renderBackpack() {
   if (!uiState.backpackOpen) return;
@@ -63,6 +64,9 @@ export function useBackpackItem(id: string) {
     p.potions -= 1;
     p.hp = Math.min(p.maxHp, p.hp + 24);
     log("使用回复药，HP 明显恢复。");
+  }
+  if (id === "reversePotion") {
+    if (!useReversePotion()) return toast("没有可以使用的逆魔药。");
   }
   htmlCache.backpack = "";
   renderBackpack();

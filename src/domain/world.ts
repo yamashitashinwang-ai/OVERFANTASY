@@ -9,7 +9,8 @@
 import DATA from '../data.ts';
 import { state } from '../runtime/state.ts';
 import { rand, clamp } from './math.ts';
-import type { ActorState, PickupState, RegionState, WorldObjectState } from './types.ts';
+import { portalAction } from './portal.ts';
+import type { ActorState, PickupState, RegionState, SceneKey, WorldObjectState } from './types.ts';
 import {
   makeRuntimeId, worldOwnerId, ensureOwnedRecord,
   currentPlayerId
@@ -114,8 +115,14 @@ export function addPickup(kind: string, name: string, x: number, y: number, colo
   return pickup;
 }
 
-export function addPortal(name: string, x: number, y: number, targetScene: string, targetX: number, targetY: number, color = "#d6c16d") {
-  return addObject("portal", name, x, y, 2, 2, color, `portal:${targetScene}:${targetX}:${targetY}`);
+export function addPortal(sourceScene: SceneKey, portalId: string, name: string, x: number, y: number, targetScene: SceneKey, targetSpawnId: string, color = "#d6c16d") {
+  const obj = addObject("portal", name, x, y, 2, 2, color, portalAction(targetScene, targetSpawnId));
+  obj.sourceScene = sourceScene;
+  obj.portalId = portalId;
+  obj.targetMapId = targetScene;
+  obj.targetScene = targetScene;
+  obj.targetSpawnId = targetSpawnId;
+  return obj;
 }
 
 export function makeCreature(species: string, x: number, y: number, overrides: CreatureOverrides = {}): ActorState {

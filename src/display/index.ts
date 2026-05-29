@@ -40,6 +40,7 @@ export function initDisplay(scene: Phaser.Scene) {
 
   D.pickupsGfx     = scene.add.graphics().setDepth(2);
   D.petRemainsGfx  = scene.add.graphics().setDepth(3);
+  D.corruptionGfx  = scene.add.graphics().setDepth(5);
   D.weaponGfx      = scene.add.graphics().setDepth(7);
   D.hpBarsGfx      = scene.add.graphics().setDepth(7);
   D.arrowGfx       = scene.add.graphics().setDepth(8);
@@ -77,11 +78,9 @@ export function initDisplay(scene: Phaser.Scene) {
     fontSize: '14px', color: '#ffffff'
   }).setScrollFactor(0).setDepth(52).setVisible(false).setAlpha(0.78);
 
-  // monsterForm banner — when the player is transformed (after being killed
-  // by a monster), enemy monsters treat the player as ally and skip attacks.
-  // This banner makes the state unmistakable so players don't think damage is
-  // broken (they just need to cleanse the transformation at the white shrine).
-  D.monsterFormBanner = scene.add.text(W / 2, 16, '⚠ 魔物化 — 你已变身为魔物势力，怪物视你为同伴', {
+  // monsterForm banner — enemy monsters treat the player as ally and skip
+  // attacks, while civilized NPCs become wary.
+  D.monsterFormBanner = scene.add.text(W / 2, 16, '魔物化 - 普通魔物视你为同伴，文明聚落会警戒', {
     fontFamily: '"Microsoft YaHei", "Segoe UI", sans-serif',
     fontSize: '18px', color: '#ffffff', backgroundColor: '#ad6cff',
     padding: { x: 12, y: 6 }, align: 'center'

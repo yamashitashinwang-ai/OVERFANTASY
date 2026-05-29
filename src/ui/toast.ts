@@ -13,12 +13,12 @@ let clearTimer: Phaser.Time.TimerEvent | null = null;
 export function attachToastPanel() {
   if (attached) return;
   attached = true;
-  bus.on(Events.TOAST_SHOWN, ({ text }: { text: string }) => {
+  bus.on(Events.TOAST_SHOWN, ({ text, durationMs = 4200 }: { text: string; durationMs?: number }) => {
     if (!get.toastEl) return;
     get.toastEl.textContent = text;
     if (clearTimer) clearTimer.remove();
     if (runtime.pSceneRef) {
-      clearTimer = scheduleOnce(runtime.pSceneRef as Phaser.Scene, 4200, () => {
+      clearTimer = scheduleOnce(runtime.pSceneRef as Phaser.Scene, durationMs, () => {
         if (get.toastEl) get.toastEl.textContent = '';
         clearTimer = null;
       });

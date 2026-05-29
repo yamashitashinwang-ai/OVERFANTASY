@@ -18,9 +18,10 @@ import { triggerHitTween } from '../../display/animations.ts';
 import { bus, Events } from '../../runtime/events.ts';
 import { log as dlog, NS } from '../../runtime/log.ts';
 import { log } from '../../runtime/services.ts';
-import { loadScene } from '../dungeon.ts';
 import { dropEmbeddedArrows } from './arrows.ts';
 import { recordQuestDefeat } from '../quest.ts';
+import { addCorruptionFromMonsterHit } from '../corruption.ts';
+import { processPlayerDeath } from '../death.ts';
 import DATA from '../../data.ts';
 import type { ActorState, DropSpec, GearMod, PetState } from '../types.ts';
 
@@ -49,6 +50,7 @@ export function damagePlayer(amount: number, source: ActorState | null | undefin
   dlog(NS.COMBAT_PLAYER_HURT, 'hp %d->%d  raw=%d final=%d blocked=%s src=%s',
     hpBefore, state.player.hp, amount, finalAmount, blocked, source?.name || '?');
   bus.emit(Events.PLAYER_HURT, { amount: finalAmount, blocked, source });
+  addCorruptionFromMonsterHit(source);
   if (blocked) log(`防御成功，受到${finalAmount}点伤害。`);
   if (source && source.alive) {
     const armorMods = Object.entries(state.player.gear)
@@ -138,20 +140,7 @@ export function dropLoot(e: ActorState) {
 export function playerDefeated(source: ActorState | null | undefined) {
   dlog(NS.COMBAT_DEFEAT, 'player defeated by %s (faction=%s) monsterForm=%s',
     source?.name || '?', source?.faction || '?', state.player.monsterForm);
-  if (source && source.faction === "monster" && !state.player.monsterForm) {
-    state.player.monsterForm = true;
-    state.player.hp = Math.ceil(state.player.maxHp * 0.65);
-    refreshCombatStats();
-    log(`被${source.name}击倒后，角色被魔素污染，暂时转入魔物势力。`);
-    dlog(NS.COMBAT_DEFEAT, 'transitioned to monsterForm  hp=%d', state.player.hp);
-    return;
-  }
-  state.player.hp = Math.ceil(state.player.maxHp * 0.5);
-  dlog(NS.COMBAT_DEFEAT, 'respawn at white shrine  hp=%d', state.player.hp);
-  loadScene("field", 18.5, 13.5, "濒死后被搬回白石祠旁边，损失了一些时间。");
-  state.player.blockTimer = 0;
-  state.player.dodgeTimer = 0;
-  state.player.invuln = 1.2;
+  processPlayerDeath(source);
 }
 
 export function defeatEntity(e: ActorState, attacker = "player") {

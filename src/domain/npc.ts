@@ -12,13 +12,15 @@ import { nearestEntity } from './combat/targeting.ts';
 import { autoSave } from '../runtime/autosave.ts';
 import { log, toast } from '../runtime/services.ts';
 import { adjustNpcMemory, npcMemoryFor } from './npc-memory.ts';
-import { loadScene, enterDungeon } from './dungeon.ts';
+import { enterDungeon } from './dungeon.ts';
+import { teleportThroughPortal } from './teleport.ts';
 import { handleDeliveryTalk, activeSmallQuestFor, settleSmallQuest } from './quest.ts';
 import { shareMagicRumor } from './magic.ts';
 import { recallPets } from './inventory.ts';
+import { relieveDeathFatigue } from './death.ts';
 import type { ActorState, PetRemainState, Vector2, WorldObjectState } from './types.ts';
 
-const { regions, sceneNames } = DATA;
+const { regions } = DATA;
 
 export function objectEdgeDistance(o: WorldObjectState, actor: Vector2 = state.player): number {
   const dx = Math.max(o.x - actor.x, 0, actor.x - (o.x + o.w));
@@ -129,6 +131,7 @@ export function rest() {
     toast("需要靠近空屋才能休息。 ");
     return;
   }
+  relieveDeathFatigue('rest');
   state.player.hp = state.player.maxHp;
   state.player.stamina = 30;
   state.player.mp = state.player.maxMp;
@@ -238,12 +241,11 @@ import { renderQuestPanel } from '../ui/quest.ts';
 import { openShopPanel } from '../ui/shop.ts';
 import { openForgePanel } from '../ui/forge.ts';
 import { openMagicPanel } from '../ui/magic.ts';
-import { refreshCombatStats } from './combat/weapon.ts';
+import { purifyAtShrine } from './corruption.ts';
 
 export function useObject(obj: WorldObjectState) {
   if (obj.action && obj.action.startsWith('portal:')) {
-    const [, scene, x, y] = obj.action.split(':');
-    loadScene(scene, Number(x), Number(y), `穿过${obj.name}，来到${sceneNames[scene] || '新区域'}。`);
+    teleportThroughPortal(obj);
     return;
   }
   if (obj.action === 'shop') {
@@ -255,14 +257,9 @@ export function useObject(obj: WorldObjectState) {
   if (obj.action === 'guild') { openGuildPanel(); return; }
   if (obj.action === 'news') worldNews(true);
   if (obj.action === 'cleanse') {
-    const shrineName = obj.name || '祠';
-    if (state.player.monsterForm) {
-      state.player.monsterForm = false;
-      refreshCombatStats();
-      state.player.hp = state.player.maxHp;
-      restoreInjuredPets();
-      log(`${shrineName}驱散了魔素，角色回到正常势力。 `);
-    } else if (!restoreInjuredPets()) toast(`${shrineName}很安静。 `);
+    purifyAtShrine(obj);
+    relieveDeathFatigue('shrine');
+    restoreInjuredPets();
   }
   if (obj.action === 'dungeon') enterDungeon();
   if (obj.action === 'demonKeep') {

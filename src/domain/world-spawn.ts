@@ -8,6 +8,7 @@ import {
   addObject, addEntity, addPickup, addPortal,
   spawnCreature, scatterPickups
 } from './world.ts';
+import { syncLostPackagePickupsForScene } from './lost-packages.ts';
 
 export function spawnWorld(scene = state.scene) {
   state.entities = [];
@@ -22,9 +23,9 @@ export function spawnWorld(scene = state.scene) {
     addObject("shrine", "白石祠", 15, 12, 2, 2, "#ccd2dc", "cleanse");
     addObject("magicCottage", "魔法爱好者小屋", 21, 7, 3, 3, "#5f83b7", "magicCottage");
     addObject("forge", "锻造台", 31, 27, 2, 2, "#a6654f", "forge");
-    addPortal("无峰山脉西路", 3, 25, "peakless", 88.5, 35.5, "#8b8170");
-    addPortal("北部森林路标", 76, 24, "forest", 8.5, 35.5, "#5e9c63");
-    addPortal("旧王城路标", 84, 55, "ruins", 12.5, 34.5, "#726a7d");
+    addPortal("field", "west_exit_to_peakless", "无峰山脉西路", 3, 25, "peakless", "east_entry_from_field", "#8b8170");
+    addPortal("field", "north_exit_to_forest", "北部森林路标", 76, 24, "forest", "south_entry_from_village", "#5e9c63");
+    addPortal("field", "east_exit_to_ruins", "旧王城路标", 84, 55, "ruins", "west_entry_from_field", "#726a7d");
 
     addEntity({ kind: "npc", name: "莉娜", faction: "human", x: 10.5, y: 11.5, r: 10, hp: 18, maxHp: 18, atk: 2, color: "#83c5ff", region: "village", affection: 24, devotion: 0, wantsTalk: false });
     addEntity({ kind: "npc", name: "艾梅", faction: "elf", x: 18.5, y: 14.5, r: 10, hp: 16, maxHp: 16, atk: 2, color: "#9fe0a2", region: "village", affection: 10, devotion: 0, wantsTalk: false });
@@ -44,9 +45,9 @@ export function spawnWorld(scene = state.scene) {
   }
 
   if (scene === "forest") {
-    addPortal("银叶林北径", 47, 4, "silverleaf", 48.5, 62.5, "#b9d9a2");
-    addPortal("回到晨风原野", 4, 33, "field", 74.5, 25.5, "#83745c");
-    addPortal("沼泽古径", 83, 61, "ruins", 22.5, 48.5, "#5e8a86");
+    addPortal("forest", "north_exit_to_silverleaf", "银叶林北径", 47, 4, "silverleaf", "south_entry_from_forest", "#b9d9a2");
+    addPortal("forest", "south_exit_to_village", "回到晨风原野", 4, 33, "field", "north_entry_from_forest", "#83745c");
+    addPortal("forest", "east_exit_to_ruins", "沼泽古径", 83, 61, "ruins", "southwest_entry_from_forest", "#5e8a86");
     addObject("shrine", "树根祠", 43, 31, 2, 2, "#ccd2dc", "cleanse");
     spawnCreature("treant", 35.5, 24.5, { region: "forest", affection: 0, devotion: 0 });
     spawnCreature("treant", 55.5, 39.5, { region: "forest", affection: 0, devotion: 0 });
@@ -65,7 +66,7 @@ export function spawnWorld(scene = state.scene) {
   }
 
   if (scene === "silverleaf") {
-    addPortal("树灵森林南径", 47, 66, "forest", 47.5, 7.5, "#5e9c63");
+    addPortal("silverleaf", "south_exit_to_forest", "树灵森林南径", 47, 66, "forest", "north_entry_from_silverleaf", "#5e9c63");
     addObject("house", "银叶殿堂", 12, 10, 5, 4, "#b8cda4", "house");
     addObject("shrine", "银叶祠", 23, 13, 2, 2, "#dbe6d2", "cleanse");
     addObject("magicCottage", "自然之拥", 31, 11, 3, 3, "#8ed0b2", "magicCottage");
@@ -88,8 +89,8 @@ export function spawnWorld(scene = state.scene) {
   }
 
   if (scene === "peakless") {
-    addPortal("回到晨风原野", 88, 34, "field", 4.5, 26.5, "#83745c");
-    addPortal("石泉西路", 4, 34, "stonegorge", 88.5, 35.5, "#9a8f78");
+    addPortal("peakless", "east_exit_to_field", "回到晨风原野", 88, 34, "field", "west_entry_from_peakless", "#83745c");
+    addPortal("peakless", "west_exit_to_stonegorge", "石泉西路", 4, 34, "stonegorge", "east_entry_from_peakless", "#9a8f78");
     for (let i = 0; i < 8; i += 1) spawnCreature("wolf", rand(20, 75), rand(12, 58), { region: "peakless" });
     for (let i = 0; i < 7; i += 1) spawnCreature("slime", rand(22, 74), rand(18, 58), { region: "peakless" });
     for (let i = 0; i < 3; i += 1) spawnCreature("skeleton", rand(35, 70), rand(22, 52), { region: "peakless", maxHp: 24, atk: 7 });
@@ -102,8 +103,8 @@ export function spawnWorld(scene = state.scene) {
   }
 
   if (scene === "stonegorge") {
-    addPortal("回到无峰山脉", 88, 34, "peakless", 6.5, 35.5, "#83745c");
-    addPortal("仇恨之孔北梯", 47, 4, "hatepit", 48.5, 62.5, "#4c4655");
+    addPortal("stonegorge", "east_exit_to_peakless", "回到无峰山脉", 88, 34, "peakless", "west_entry_from_stonegorge", "#83745c");
+    addPortal("stonegorge", "north_exit_to_hatepit", "仇恨之孔北梯", 47, 4, "hatepit", "south_entry_from_stonegorge", "#4c4655");
     addObject("house", "洞穴小家", 12, 12, 5, 4, "#94765d", "house");
     addObject("shrine", "英灵殿", 23, 13, 3, 3, "#b7c0ca", "cleanse");
     addObject("magicCottage", "术士研讨所", 33, 12, 4, 3, "#6c7b91", "magicCottage");
@@ -123,7 +124,7 @@ export function spawnWorld(scene = state.scene) {
   }
 
   if (scene === "hatepit") {
-    addPortal("回到石泉沟壑", 47, 66, "stonegorge", 47.5, 6.5, "#83745c");
+    addPortal("hatepit", "south_exit_to_stonegorge", "回到石泉沟壑", 47, 66, "stonegorge", "north_entry_from_hatepit", "#83745c");
     addObject("shrine", "封印柱", 45, 32, 3, 3, "#53506e", "cleanse");
     for (let i = 0; i < 12; i += 1) spawnCreature("skeleton", rand(16, 76), rand(12, 58), { region: "hatepit" });
     for (let i = 0; i < 8; i += 1) spawnCreature("wisp", rand(22, 80), rand(14, 60), { region: "hatepit" });
@@ -137,8 +138,8 @@ export function spawnWorld(scene = state.scene) {
   }
 
   if (scene === "ruins") {
-    addPortal("回到晨风原野", 9, 34, "field", 83.5, 55.5, "#83745c");
-    addPortal("魔王城远门", 84, 35, "demon", 10.5, 35.5, "#9b4b62");
+    addPortal("ruins", "west_exit_to_field", "回到晨风原野", 9, 34, "field", "east_entry_from_ruins", "#83745c");
+    addPortal("ruins", "east_exit_to_demon", "魔王城远门", 84, 35, "demon", "west_entry_from_ruins", "#9b4b62");
     addObject("dungeon", "旧王城入口", 49, 32, 3, 3, "#4b4a59", "dungeon");
     addObject("shrine", "残破圣像", 20, 22, 2, 2, "#ccd2dc", "cleanse");
     for (let i = 0; i < 12; i += 1) spawnCreature("slime", rand(22, 61), rand(20, 58), { region: "ruins" });
@@ -152,7 +153,7 @@ export function spawnWorld(scene = state.scene) {
   }
 
   if (scene === "demon") {
-    addPortal("退回旧王城", 6, 35, "ruins", 82.5, 35.5, "#83745c");
+    addPortal("demon", "west_exit_to_ruins", "退回旧王城", 6, 35, "ruins", "east_entry_from_demon", "#83745c");
     addObject("dungeon", "魔王城门", 78, 32, 4, 5, "#5b2d43", "demonKeep");
     for (let i = 0; i < 10; i += 1) spawnCreature("gargoyle", rand(20, 74), rand(14, 57), { region: "demon" });
     for (let i = 0; i < 9; i += 1) spawnCreature("demonKnight", rand(35, 86), rand(18, 54), { region: "demon" });
@@ -163,4 +164,5 @@ export function spawnWorld(scene = state.scene) {
       { kind: "gear", name: "银项链", x: 64.5, y: 43.5, color: "#d8e0e6" }
     ]);
   }
+  syncLostPackagePickupsForScene(scene);
 }

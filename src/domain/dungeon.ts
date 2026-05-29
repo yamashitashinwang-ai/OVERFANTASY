@@ -2,7 +2,7 @@
 // map rebuild + player position teleport + autosave. generateDungeon builds the
 // procedurally arranged "排列迷宫" room layout.
 
-import { state } from '../runtime/state.ts';
+import { state, runtime } from '../runtime/state.ts';
 import DATA from '../data.ts';
 import { rand } from './math.ts';
 import { autoSave } from '../runtime/autosave.ts';
@@ -12,11 +12,17 @@ import { makeMap, addObject, addPickup } from './world.ts';
 import { spawnWorld } from './world-spawn.ts';
 import { recallPets } from './inventory.ts';
 import { worldNews } from './npc.ts';
-import { rebuildDisplay } from '../display/index.ts';
+import { teleportBody } from '../display/physics.ts';
 import type { SceneKey } from './types.ts';
 
 const { bestiary } = DATA;
 import { spawnCreature } from './world.ts';
+
+function rebuildDisplayIfReady() {
+  if (!runtime.pSceneRef) return;
+  teleportBody(state.player);
+  void import('../display/index.ts').then(({ rebuildDisplay }) => rebuildDisplay());
+}
 
 type SpawnRule = [species: string, cap: number, xs: [number, number], ys: [number, number], region: string];
 
@@ -33,7 +39,7 @@ export function loadScene(scene: SceneKey, x: number, y: number, message: string
   state.player.y = y;
   recallPets();
   state.spawnClock = 6;
-  rebuildDisplay();
+  rebuildDisplayIfReady();
   log(message);
   autoSave();
 }
@@ -46,7 +52,7 @@ export function enterDungeon() {
   state.player.y = 5.5;
   generateDungeon();
   recallPets();
-  rebuildDisplay();
+  rebuildDisplayIfReady();
   log("进入旧王城的排列迷宫。房间由模板重新组合，深处藏着唯一武器。 ");
   autoSave();
 }

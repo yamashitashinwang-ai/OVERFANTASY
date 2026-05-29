@@ -24,6 +24,7 @@ export const PLAYER_COOLDOWN_FIELDS = [
   'blockTimer',
   'mpRegenLock',
   'giftCooldown',
+  'portalCooldown',
 ] as const;
 
 export type PlayerCooldownField = typeof PLAYER_COOLDOWN_FIELDS[number];

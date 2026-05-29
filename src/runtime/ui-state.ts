@@ -53,6 +53,7 @@ export interface UiState {
   magicMode: string;
   magicPanelTitle: string;
   magicInput: string;
+  corruptionChoiceOpen: boolean;
   selectedSaveId: string | null;
   pendingDeleteSaveId: string | null;
   currentSaveId: string | null;
@@ -85,6 +86,8 @@ export const uiState: UiState = {
   magicMode: 'book',          // 'book' | 'study'
   magicPanelTitle: '魔法',
   magicInput: '',
+
+  corruptionChoiceOpen: false,
 
   selectedSaveId: null,
   pendingDeleteSaveId: null,

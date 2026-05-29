@@ -87,6 +87,9 @@ await test('LIVE-3 — Multiple hits in a row deplete HP', async () => {
     p.hp = 40;
     p.invuln = 0;
     p.monsterForm = false;
+    p.corruption = 0;
+    p.corruptionHitCooldown = 0;
+    p.corruptionChoicePending = false;
     // Place several wolves stacked on top of player
     for (let i = 0; i < 3; i++) {
       window.__state.entities.push({
@@ -105,8 +108,8 @@ await test('LIVE-3 — Multiple hits in a row deplete HP', async () => {
   else fail(`HP only dropped to ${hp} (expected < 38)`);
 });
 
-// ─── LIVE-4: Death transitions cleanly (monsterForm or respawn) ───────────
-await test('LIVE-4 — Player at low HP killed → monsterForm OR respawned', async () => {
+// ─── LIVE-4: Death transitions cleanly after corruption is applied ────────
+await test('LIVE-4 — Player at low HP killed → corruption then respawn or choice', async () => {
   await page.evaluate(() => {
     window.__state.entities = window.__state.entities.filter(e => !e.id?.startsWith('live-test'));
     const p = window.__state.player;
@@ -114,6 +117,9 @@ await test('LIVE-4 — Player at low HP killed → monsterForm OR respawned', as
     p.invuln = 0;
     p.maxHp = 42;
     p.monsterForm = false;
+    p.corruption = 0;
+    p.corruptionHitCooldown = 0;
+    p.corruptionChoicePending = false;
     p.gear = { weapon: 'trainingSword', head: null, body: null, legs: null, feet: null, accessory: null };
     p.gearMods = {};
     window.__state.entities.push({
@@ -130,7 +136,6 @@ await test('LIVE-4 — Player at low HP killed → monsterForm OR respawned', as
     mf: window.__state.player.monsterForm,
     scene: window.__state.scene
   }));
-  // Either monsterForm=true OR teleported to field (scene unchanged but hp recovered)
   if (s.mf === true && s.hp > 5) ok(`died → monsterForm hp=${s.hp}`);
   else if (s.hp > 5) ok(`died → respawned hp=${s.hp} scene=${s.scene}`);
   else fail(`stuck at low HP: hp=${s.hp} mf=${s.mf}`);
