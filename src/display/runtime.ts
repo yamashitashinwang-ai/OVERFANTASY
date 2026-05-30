@@ -13,11 +13,13 @@ type PhysicsRectangle = Phaser.GameObjects.Rectangle;
 interface ActorDisplay {
   entity?: ActorState;
   circle: PhysicsArc;
+  sprite?: Phaser.GameObjects.Sprite;
 }
 
 interface ObjectDisplay {
   object: WorldObjectState;
-  rect: PhysicsRectangle;
+  sprite: Phaser.GameObjects.Image;
+  collisionRects: PhysicsRectangle[];
   labelBg: Phaser.GameObjects.Rectangle;
   labelText: Phaser.GameObjects.Text;
 }
@@ -25,17 +27,21 @@ interface ObjectDisplay {
 interface PetDisplay {
   pet: PetState;
   circle: PhysicsArc;
+  sprite?: Phaser.GameObjects.Sprite;
 }
 
 interface DisplayState {
   pScene: Phaser.Scene | null;
   playerCircle: PhysicsArc | null;
+  playerSprite: Phaser.GameObjects.Sprite | null;
   weaponGfx: Phaser.GameObjects.Graphics | null;
   corruptionGfx: Phaser.GameObjects.Graphics | null;
   arrowGfx: Phaser.GameObjects.Graphics | null;
   effectsGfx: Phaser.GameObjects.Graphics | null;
   hpBarsGfx: Phaser.GameObjects.Graphics | null;
   pickupsGfx: Phaser.GameObjects.Graphics | null;
+  collisionDebugGfx: Phaser.GameObjects.Graphics | null;
+  collisionDebugEnabled: boolean;
   petRemainsGfx: Phaser.GameObjects.Graphics | null;
   hudBg: Phaser.GameObjects.Rectangle | null;
   hudAreaText: Phaser.GameObjects.Text | null;
@@ -76,12 +82,15 @@ export const display: DisplayState = {
 
   // Persistent display GameObjects
   playerCircle: null,
+  playerSprite: null,
   weaponGfx: null,
   corruptionGfx: null,
   arrowGfx: null,
   effectsGfx: null,
   hpBarsGfx: null,
   pickupsGfx: null,
+  collisionDebugGfx: null,
+  collisionDebugEnabled: false,
   petRemainsGfx: null,
 
   // HUD (fixed-to-camera) elements

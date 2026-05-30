@@ -1,6 +1,7 @@
 export type SceneKey = string;
 export type ResourceBag = Record<string, number>;
 export type FlagBag = Record<string, boolean>;
+export type Direction8 = 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'nw';
 
 export interface Vector2 {
   x: number;
@@ -315,6 +316,8 @@ export interface WorldObjectState extends OwnedRecord, Vector2 {
   targetScene?: SceneKey;
   targetSpawnId?: string;
   visualOnly?: boolean;
+  environment?: boolean;
+  collisionProfile?: string;
   [key: string]: unknown;
 }
 
@@ -493,7 +496,22 @@ export interface AttackEffect {
   radius?: number;
   color?: string;
   lineWidth?: number;
+  handX?: number;
+  handY?: number;
+  zones?: AttackHitZone[];
   [key: string]: unknown;
+}
+
+export interface AttackHitZone {
+  shape: 'sector' | 'line' | 'circle';
+  role: 'close' | 'main';
+  x: number;
+  y: number;
+  angle: number;
+  reach?: number;
+  halfAngle?: number;
+  halfWidth?: number;
+  radius?: number;
 }
 
 export interface BowCharge {
@@ -571,6 +589,9 @@ export interface RuntimeState {
   hitStopTimer: number;
   aimVector: Vector2;
   aimWorld: Vector2 | null;
+  aimDirection: Direction8 | null;
+  facingDirection: Direction8 | null;
+  pointerInside: boolean;
   mvKeys: MovementKeys | null;
   pSceneRef: SceneRefLike | null;
 }

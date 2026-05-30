@@ -4,35 +4,76 @@
 
 import { display as D } from './runtime.ts';
 import type Phaser from 'phaser';
-import { hexToInt, brightenColorInt } from './colors.ts';
+import { hexToInt } from './colors.ts';
 import { attachCircleBody, rebuildPhysicsForMap } from './physics.ts';
 import { ensureTileTextures } from './tiles.ts';
+import {
+  facingFromDelta, playerTextureKey, entityTextureKey, petTextureKey, objectTextureKey
+} from './placeholder-art.ts';
+import type { PlayerPose } from './placeholder-art.ts';
+import { currentPlayerPoseOverride, playerVisualAdjust, npcVisualAdjust } from './animations.ts';
 import DATA from '../data.ts';
-import { state } from '../runtime/state.ts';
+import { state, runtime } from '../runtime/state.ts';
 import { tile } from '../runtime/constants.ts';
 import { clamp } from '../domain/math.ts';
 import { mapBounds, currentPetScene } from '../domain/world.ts';
 import { currentWeapon } from '../domain/combat/weapon.ts';
-import type { ActorState, PetState } from '../domain/types.ts';
+import type { ActorState, PetState, PickupState, WorldObjectState } from '../domain/types.ts';
 
 const { graveMaxDecay } = DATA;
 const resetBody = (body: Phaser.GameObjects.GameObject['body'] | null | undefined, x: number, y: number) => {
   (body as { reset?: (nextX: number, nextY: number) => void } | null)?.reset?.(x, y);
 };
+type FacingDir = 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'nw';
+let playerFacing: FacingDir = 's';
+let lastPlayerPixel = { x: 0, y: 0 };
+
+function syncActivePointerAimWorld() {
+  if (!D.pScene || !runtime.pointerInside) return;
+  const pointer = D.pScene.input.activePointer;
+  if (!pointer) return;
+  const worldPoint = D.pScene.cameras.main.getWorldPoint(pointer.x, pointer.y);
+  runtime.aimWorld = { x: worldPoint.x / tile, y: worldPoint.y / tile };
+}
+
+function syncPlayerFacingFromAim(dx: number, dy: number) {
+  syncActivePointerAimWorld();
+  const movementFacing = Math.hypot(dx, dy) > 0.35 ? facingFromDelta(dx, dy, playerFacing) : playerFacing;
+  if (runtime.aimWorld) {
+    const bodyX = (D.playerCircle?.x ?? state.player.x * tile) / tile;
+    const bodyY = (D.playerCircle?.y ?? state.player.y * tile) / tile;
+    const ax = runtime.aimWorld.x - bodyX;
+    const ay = runtime.aimWorld.y - bodyY;
+    const len = Math.hypot(ax, ay);
+    if (len > 0.02) {
+      playerFacing = facingFromDelta(ax * tile, ay * tile, playerFacing);
+      runtime.aimVector = { x: ax / len, y: ay / len };
+      runtime.aimDirection = playerFacing;
+      runtime.facingDirection = playerFacing;
+      return;
+    }
+  }
+  playerFacing = movementFacing;
+  runtime.aimDirection = runtime.aimWorld ? playerFacing : null;
+  runtime.facingDirection = playerFacing;
+}
 
 export function destroyAllDisplayObjects() {
   for (const obj of D.entityDisplayMap.values()) {
     if (obj.circle) obj.circle.destroy();
+    if (obj.sprite) obj.sprite.destroy();
   }
   D.entityDisplayMap.clear();
   for (const obj of D.objectDisplayMap.values()) {
-    if (obj.rect) obj.rect.destroy();
+    if (obj.sprite) obj.sprite.destroy();
+    for (const rect of obj.collisionRects) rect.destroy();
     if (obj.labelBg) obj.labelBg.destroy();
     if (obj.labelText) obj.labelText.destroy();
   }
   D.objectDisplayMap.clear();
   for (const obj of D.petDisplayMap.values()) {
     if (obj.circle) obj.circle.destroy();
+    if (obj.sprite) obj.sprite.destroy();
   }
   D.petDisplayMap.clear();
   if (D.staticBuildingsGroup) { D.staticBuildingsGroup.clear(true, true); }
@@ -57,13 +98,18 @@ export function rebuildDisplay() {
 
   if (!D.playerCircle) {
     D.playerCircle = D.pScene.add.arc(state.player.x * tile, state.player.y * tile, state.player.r, 0, 360, false, hexToInt('#f3c45b'));
-    D.playerCircle.setStrokeStyle(2, 0x101317);
-    D.playerCircle.setDepth(6);
+    D.playerCircle.setVisible(false);
+  }
+  if (!D.playerSprite) {
+    D.playerSprite = D.pScene.add.sprite(state.player.x * tile, state.player.y * tile, playerTextureKey('s', 'idle'));
+    D.playerSprite.setOrigin(0.5, 0.88);
+    D.playerSprite.setDepth(6);
   }
   // Attach physics body to player (idempotent)
   if (!D.playerCircle.body) attachCircleBody(D.playerCircle, state.player.r, true);
   // Teleport body to spawn position (overrides any leftover velocity).
   resetBody(D.playerCircle.body, state.player.x * tile, state.player.y * tile);
+  lastPlayerPixel = { x: state.player.x * tile, y: state.player.y * tile };
 
   D.pScene.cameras.main.startFollow(D.playerCircle, true, 1, 1);
 
@@ -79,13 +125,29 @@ export function rebuildDisplay() {
 export function syncPlayerDisplay() {
   if (!D.playerCircle) return;
   const p = state.player;
-  // Body owns position; we only update visual properties here.
-  D.playerCircle.setRadius(p.r + (p.invuln > 0 ? 2 : 0));
-  const fillColor = p.monsterForm ? 0xad6cff : (p.blockTimer > 0 ? 0x9ed6ff : 0xf3c45b);
-  D.playerCircle.setFillStyle(fillColor, 1);
-  const weapon = currentWeapon();
-  if (weapon.name === '剑的概念') D.playerCircle.setStrokeStyle(4, 0xffffff);
-  else D.playerCircle.setStrokeStyle(2, 0x101317);
+  D.playerCircle.setVisible(false);
+  if (D.playerSprite) {
+    const dx = D.playerCircle.x - lastPlayerPixel.x;
+    const dy = D.playerCircle.y - lastPlayerPixel.y;
+    const moving = Math.hypot(dx, dy) > 0.35 || p.running;
+    syncPlayerFacingFromAim(dx, dy);
+    const phase = Math.floor(state.time * (p.running ? 11 : 7)) % 2 as 0 | 1;
+    const basePose: PlayerPose = moving ? (p.running ? (phase === 0 ? 'run0' : 'run1') : (phase === 0 ? 'walk0' : 'walk1')) : 'idle';
+    const pose = currentPlayerPoseOverride() || basePose;
+    const visual = playerVisualAdjust(playerFacing);
+    D.playerSprite.setTexture(playerTextureKey(playerFacing, pose, !!p.monsterForm));
+    D.playerSprite.setPosition(
+      D.playerCircle.x + visual.offsetX,
+      D.playerCircle.y + visual.offsetY + (p.invuln > 0 ? Math.sin(state.time * 28) * 1.5 : 0)
+    );
+    D.playerSprite.setScale(visual.scale);
+    D.playerSprite.setDepth(6 + D.playerCircle.y / 100000);
+    if (visual.tint) D.playerSprite.setTint(visual.tint);
+    else if (p.blockTimer > 0) D.playerSprite.setTint(0x9ed6ff);
+    else if (currentWeapon().name === '剑的概念') D.playerSprite.setTint(0xfff4b0);
+    else D.playerSprite.clearTint();
+    lastPlayerPixel = { x: D.playerCircle.x, y: D.playerCircle.y };
+  }
   syncCorruptionAura();
 }
 
@@ -124,6 +186,7 @@ export function syncEntityDisplay() {
   for (const [id, display] of D.entityDisplayMap) {
     if (!aliveById.has(id)) {
       display.circle.destroy();
+      display.sprite?.destroy();
       D.entityDisplayMap.delete(id);
     }
   }
@@ -132,23 +195,79 @@ export function syncEntityDisplay() {
     let display = D.entityDisplayMap.get(id);
     if (!display) {
       const circle = D.pScene.add.arc(e.x * tile, e.y * tile, e.r, 0, 360, false, hexToInt(e.color));
-      circle.setStrokeStyle(2, 0x0b0e12);
-      circle.setDepth(4);
+      circle.setVisible(false);
       attachCircleBody(circle, e.r, true);
       if (D.entitiesGroup) D.entitiesGroup.add(circle);
-      display = { circle };
+      const sprite = D.pScene.add.sprite(e.x * tile, e.y * tile, entityTextureKey(e));
+      sprite.setOrigin(0.5, 0.88);
+      sprite.setDepth(4);
+      display = { circle, sprite };
       D.entityDisplayMap.set(id, display);
     }
-    // Color tween (from animations.js) overrides fillColor during a hit. When
-    // no tween is active, restore the base color. Stroke reflects state effects.
+    display.entity = e;
+    display.circle.setVisible(false);
     display.circle.setRadius(e.r);
-    const baseColor = e.wounded ? '#f1a381' : e.color;
-    // Only overwrite fillColor when not currently being driven by a hit tween.
-    if (!display.circle._hitTweenActive) display.circle.setFillStyle(hexToInt(baseColor), 1);
-    if (e.slowTimer > 0) display.circle.setStrokeStyle(3, 0x6ee0d2);
-    else if (e.wantsTalk) display.circle.setStrokeStyle(3, 0xf3c45b);
-    else display.circle.setStrokeStyle(2, 0x0b0e12);
+    if (display.sprite) {
+      const visual = npcVisualAdjust(e);
+      display.sprite.setTexture(entityTextureKey(e));
+      display.sprite.setPosition(display.circle.x + visual.offsetX, display.circle.y + visual.offsetY);
+      display.sprite.setDepth(4 + display.circle.y / 100000);
+      if (!display.circle._hitTweenActive) display.sprite.setScale(visual.scale);
+      if (!display.circle._hitTweenActive) {
+        if (visual.tint) display.sprite.setTint(visual.tint);
+        else if (e.slowTimer > 0) display.sprite.setTint(0x6ee0d2);
+        else if (e.wantsTalk) display.sprite.setTint(0xf3c45b);
+        else if (e.wounded) display.sprite.setTint(0xf1a381);
+        else display.sprite.clearTint();
+      }
+    }
   }
+}
+
+function isWalkThroughObject(o: WorldObjectState): boolean {
+  return o.kind === 'portal' || o.kind === 'roadSign' || o.kind === 'mapExit' || o.action === 'exit';
+}
+
+function objectCollisionPieces(o: WorldObjectState) {
+  if (isWalkThroughObject(o)) return [];
+  if (o.collisionProfile === 'treeTrunk' || o.kind === 'tree') {
+    const x = o.x * tile;
+    const y = o.y * tile;
+    const w = o.w * tile;
+    const h = o.h * tile;
+    return [{
+      x: x + w * 0.42,
+      y: y + h * 0.68,
+      w: Math.max(8, w * 0.16),
+      h: Math.max(12, h * 0.24)
+    }];
+  }
+  if (o.environment || o.visualOnly) return [];
+  const x = o.x * tile;
+  const y = o.y * tile;
+  const w = o.w * tile;
+  const h = o.h * tile;
+  const buildingWithDoor = o.kind === 'house' || o.kind === 'shop' || o.kind === 'guild' || o.kind === 'magicCottage';
+  if (!buildingWithDoor) return [{ x: x + 3, y: y + 3, w: Math.max(4, w - 6), h: Math.max(4, h - 6) }];
+  const sideW = Math.max(8, Math.min(w * 0.26, 24));
+  const topH = Math.max(12, Math.min(h * 0.42, 30));
+  return [
+    { x: x + 3, y: y + 3, w: Math.max(4, w - 6), h: topH },
+    { x: x + 3, y: y + topH, w: sideW, h: Math.max(4, h - topH - 3) },
+    { x: x + w - sideW - 3, y: y + topH, w: sideW, h: Math.max(4, h - topH - 3) }
+  ];
+}
+
+function addObjectCollisionRects(o: WorldObjectState): Phaser.GameObjects.Rectangle[] {
+  if (!D.pScene || !D.staticBuildingsGroup) return [];
+  return objectCollisionPieces(o).map(piece => {
+    const rect = D.pScene!.add.rectangle(piece.x + piece.w / 2, piece.y + piece.h / 2, piece.w, piece.h, 0x000000, 0);
+    rect.setVisible(false);
+    D.staticBuildingsGroup!.add(rect);
+    const body = rect.body as { updateFromGameObject?: () => void } | null;
+    body?.updateFromGameObject?.();
+    return rect;
+  });
 }
 
 export function syncObjectDisplay() {
@@ -157,7 +276,8 @@ export function syncObjectDisplay() {
   const currentIds = new Set(visibleObjects.map(o => o.id));
   for (const [id, display] of D.objectDisplayMap) {
     if (!currentIds.has(id)) {
-      display.rect.destroy();
+      display.sprite.destroy();
+      for (const rect of display.collisionRects) rect.destroy();
       display.labelBg.destroy();
       display.labelText.destroy();
       D.objectDisplayMap.delete(id);
@@ -166,23 +286,10 @@ export function syncObjectDisplay() {
   for (const o of visibleObjects) {
     let display = D.objectDisplayMap.get(o.id);
     if (!display) {
-      const rectW = o.w * tile - 6;
-      const rectH = o.h * tile - 6;
-      const rect = D.pScene.add.rectangle(
-        o.x * tile + 3 + rectW / 2,
-        o.y * tile + 3 + rectH / 2,
-        rectW, rectH,
-        hexToInt(o.color), 1
-      );
-      rect.setStrokeStyle(3, 0x0b0e12);
-      rect.setDepth(1);
-      // Solid buildings get static physics bodies. Road signs, portals and exits are walk-through.
-      const isWalkThrough = (o.kind === 'portal') || (o.kind === 'roadSign') || (o.action === 'exit');
-      if (!isWalkThrough && D.staticBuildingsGroup) {
-        D.staticBuildingsGroup.add(rect);
-        const body = rect.body as { updateFromGameObject?: () => void } | null;
-        body?.updateFromGameObject?.();
-      }
+      const sprite = D.pScene.add.image((o.x + o.w / 2) * tile, (o.y + o.h / 2) * tile, objectTextureKey(o));
+      sprite.setDisplaySize(o.w * tile, o.h * tile);
+      sprite.setDepth(1 + (o.y + o.h) / 10000);
+      const collisionRects = addObjectCollisionRects(o);
       const labelW = Math.max(54, o.name.length * 13);
       const labelBg = D.pScene.add.rectangle(
         o.x * tile - 4 + labelW / 2,
@@ -197,16 +304,82 @@ export function syncObjectDisplay() {
         color: '#edf3f7'
       });
       labelText.setDepth(8);
-      display = { rect, labelBg, labelText, object: o };
+      display = { sprite, collisionRects, labelBg, labelText, object: o };
       D.objectDisplayMap.set(o.id, display);
     }
+    display.sprite.setTexture(objectTextureKey(o));
+    display.sprite.setPosition((o.x + o.w / 2) * tile, (o.y + o.h / 2) * tile);
+    display.sprite.setDisplaySize(o.w * tile, o.h * tile);
     const cx = o.x + o.w / 2;
     const cy = o.y + o.h / 2;
     const playerDist = Math.hypot(state.player.x - cx, state.player.y - cy);
-    const showLabel = o.kind === 'portal' || o.kind === 'roadSign' || playerDist < 4;
+    const showLabel = !o.environment && (o.kind === 'portal' || o.kind === 'roadSign' || playerDist < 4);
     display.labelBg.setVisible(showLabel);
     display.labelText.setVisible(showLabel);
   }
+}
+
+function drawPickupIcon(gfx: Phaser.GameObjects.Graphics, p: PickupState, x: number, y: number) {
+  const color = hexToInt(p.color);
+  gfx.lineStyle(2, 0x101317, 0.9);
+  if (p.kind === 'herb') {
+    gfx.fillStyle(0x2d7c45, 1);
+    gfx.fillRect(x - 2, y - 11, 4, 20);
+    gfx.fillStyle(color, 1);
+    gfx.fillEllipse(x - 8, y - 4, 13, 8);
+    gfx.fillEllipse(x + 8, y - 8, 13, 8);
+    gfx.strokeEllipse(x - 8, y - 4, 13, 8);
+    gfx.strokeEllipse(x + 8, y - 8, 13, 8);
+    return;
+  }
+  if (p.kind === 'potion' || p.kind === 'cleanse') {
+    gfx.fillStyle(p.kind === 'cleanse' ? 0xd9d4ff : color, 1);
+    gfx.fillRoundedRect(x - 7, y - 10, 14, 19, 4);
+    gfx.fillStyle(0xeaf7ff, 0.85);
+    gfx.fillRect(x - 4, y - 15, 8, 5);
+    gfx.strokeRoundedRect(x - 7, y - 10, 14, 19, 4);
+    return;
+  }
+  if (p.kind === 'gold') {
+    gfx.fillStyle(0xf3c45b, 1);
+    gfx.fillCircle(x, y, 9);
+    gfx.lineStyle(2, 0x7c5420, 0.9);
+    gfx.strokeCircle(x, y, 9);
+    gfx.lineBetween(x - 4, y, x + 4, y);
+    return;
+  }
+  if (p.kind === 'arrow') {
+    gfx.lineStyle(3, 0xdbe4ea, 1);
+    gfx.lineBetween(x - 12, y + 8, x + 12, y - 8);
+    gfx.fillStyle(0xdbe4ea, 1);
+    gfx.fillTriangle(x + 12, y - 8, x + 4, y - 7, x + 9, y);
+    return;
+  }
+  if (p.kind === 'lostPackage') {
+    gfx.fillStyle(0xb8895a, 1);
+    gfx.fillRoundedRect(x - 11, y - 8, 22, 17, 3);
+    gfx.lineStyle(2, 0x5f3d24, 1);
+    gfx.strokeRoundedRect(x - 11, y - 8, 22, 17, 3);
+    gfx.lineBetween(x, y - 8, x, y + 9);
+    gfx.lineBetween(x - 11, y, x + 11, y);
+    return;
+  }
+  if (p.kind === 'wood') {
+    gfx.fillStyle(0xb8895a, 1);
+    gfx.fillRoundedRect(x - 12, y - 6, 24, 12, 6);
+    gfx.strokeRoundedRect(x - 12, y - 6, 24, 12, 6);
+    gfx.lineBetween(x - 5, y - 5, x - 8, y + 5);
+    return;
+  }
+  if (p.kind === 'stone' || p.kind === 'resource' || p.kind === 'material') {
+    gfx.fillStyle(color, 1);
+    gfx.fillTriangle(x - 12, y + 8, x - 4, y - 10, x + 12, y + 5);
+    gfx.strokeTriangle(x - 12, y + 8, x - 4, y - 10, x + 12, y + 5);
+    return;
+  }
+  gfx.fillStyle(color, 1);
+  gfx.fillRoundedRect(x - 9, y - 9, 18, 18, 3);
+  gfx.strokeRoundedRect(x - 9, y - 9, 18, 18, 3);
 }
 
 export function syncPickupDisplay() {
@@ -216,10 +389,7 @@ export function syncPickupDisplay() {
     if (p.taken) continue;
     const x = p.x * tile;
     const y = p.y * tile;
-    D.pickupsGfx.fillStyle(hexToInt(p.color), 1);
-    D.pickupsGfx.fillTriangle(x, y - 13, x - 12, y + 11, x + 12, y + 11);
-    D.pickupsGfx.lineStyle(2, 0x101317, 1);
-    D.pickupsGfx.strokeTriangle(x, y - 13, x - 12, y + 11, x + 12, y + 11);
+    drawPickupIcon(D.pickupsGfx, p, x, y);
   }
 }
 
@@ -236,6 +406,7 @@ export function syncPetDisplay() {
   for (const [id, display] of D.petDisplayMap) {
     if (!visiblePets.has(id)) {
       display.circle.destroy();
+      display.sprite?.destroy();
       D.petDisplayMap.delete(id);
     }
   }
@@ -243,11 +414,13 @@ export function syncPetDisplay() {
     let display = D.petDisplayMap.get(id);
     if (!display) {
       const circle = D.pScene.add.arc(pet.x * tile, pet.y * tile, pet.r, 0, 360, false, hexToInt(pet.color));
-      circle.setStrokeStyle(2, 0xfff4b0);
-      circle.setDepth(5);
+      circle.setVisible(false);
       attachCircleBody(circle, pet.r, true);
       if (D.petsGroup) D.petsGroup.add(circle);
-      display = { circle, pet };
+      const sprite = D.pScene.add.sprite(pet.x * tile, pet.y * tile, petTextureKey(pet));
+      sprite.setOrigin(0.5, 0.88);
+      sprite.setDepth(5);
+      display = { circle, sprite, pet };
       D.petDisplayMap.set(id, display);
     }
     display.pet = pet;
@@ -256,10 +429,15 @@ export function syncPetDisplay() {
     if (pet.carried && display.circle.body) {
       resetBody(display.circle.body, pet.x * tile, pet.y * tile);
     }
+    display.circle.setVisible(false);
     display.circle.setRadius(injured ? Math.max(6, pet.r - 2) : pet.r);
-    display.circle.setFillStyle(injured ? 0x5d5961 : hexToInt(pet.color), 1);
-    if (injured) display.circle.setStrokeStyle(3, 0xff8f70);
-    else display.circle.setStrokeStyle(2, 0xfff4b0);
+    if (display.sprite) {
+      display.sprite.setTexture(petTextureKey(pet));
+      display.sprite.setPosition(display.circle.x, display.circle.y);
+      display.sprite.setDepth(5 + display.circle.y / 100000);
+      if (injured) display.sprite.setTint(0xff8f70);
+      else display.sprite.clearTint();
+    }
   }
 }
 
@@ -306,7 +484,7 @@ export function syncHpBars() {
     D.hpBarsGfx.fillRect(x - 13, y - e.r - 10, 26 * clamp(e.hp / e.maxHp, 0, 1), 4);
   }
   // Pet HP bars
-  for (const [id, display] of D.petDisplayMap) {
+  for (const display of D.petDisplayMap.values()) {
     const pet = display.pet;
     if (!pet) continue;
     const x = pet.x * tile;

@@ -18,6 +18,7 @@ import { handleDeliveryTalk, activeSmallQuestFor, settleSmallQuest } from './que
 import { shareMagicRumor } from './magic.ts';
 import { recallPets } from './inventory.ts';
 import { relieveDeathFatigue } from './death.ts';
+import { triggerPlayerInteract, triggerNpcInteract } from '../display/animations.ts';
 import type { ActorState, PetRemainState, Vector2, WorldObjectState } from './types.ts';
 
 const { regions } = DATA;
@@ -32,6 +33,7 @@ export function nearestObject(range = 1.4) {
   let best: WorldObjectState | null = null;
   let bestD = Infinity;
   for (const o of state.objects) {
+    if ((o.environment || o.visualOnly) && !o.action) continue;
     const edgeDistance = objectEdgeDistance(o);
     if (edgeDistance < range && edgeDistance < bestD) {
       best = o;
@@ -57,6 +59,8 @@ export function talkOrUse() {
   if (handlePetMemorial()) return;
   const npc = nearestEntity(1.5, e => e.kind === "npc" || e.kind === "friendly");
   if (npc) {
+    triggerPlayerInteract();
+    triggerNpcInteract(npc);
     if (state.player.monsterForm) {
       toast(`${npc.name}后退了。魔物化状态下很难正常交谈。`);
       return;
@@ -88,6 +92,7 @@ export function talkOrUse() {
   }
   const obj = nearestObject();
   if (obj) {
+    triggerPlayerInteract();
     useObject(obj);
     return;
   }
@@ -154,6 +159,8 @@ export function helpWounded() {
   const wounded = nearestEntity(1.45, e => e.wounded && e.alive);
   if (!wounded) return false;
   if (state.player.herbs <= 0 && state.player.potions <= 0) return false;
+  triggerPlayerInteract();
+  triggerNpcInteract(wounded);
   if (state.player.potions > 0) state.player.potions -= 1;
   else state.player.herbs -= 1;
   wounded.wounded = false;
@@ -175,6 +182,7 @@ export function handlePetRescue() {
   const sceneKey = currentPetScene();
   const pet = state.pets.find(candidate => ownedByCurrentPlayer(candidate) && candidate.injured && !candidate.carried && !candidate.lost && candidate.scene === sceneKey && dist(candidate, state.player) < 1.5);
   if (!pet) return false;
+  triggerPlayerInteract();
   pet.carried = true;
   pet.x = state.player.x;
   pet.y = state.player.y;

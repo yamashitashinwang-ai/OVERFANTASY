@@ -20,6 +20,7 @@ import { resolveMagicCast, updateMagicZoneEffect } from '../magic.ts';
 import { playerAimAngle } from '../../scenes/game-scene-helpers.ts';
 import { log, toast } from '../../runtime/services.ts';
 import { log as dlog, NS } from '../../runtime/log.ts';
+import { triggerPlayerAttackPlaceholder } from '../../display/animations.ts';
 import type { GearMod } from '../types.ts';
 
 export function playerAttack() {
@@ -47,6 +48,11 @@ export function playerAttack() {
   state.player.attackCooldown = weapon.cooldown;
   state.player.stamina = Math.max(0, state.player.stamina - weapon.stamina);
   startAttackEffect(weapon, spec);
+  triggerPlayerAttackPlaceholder(
+    weapon.type === "匕首" ? 'attack_dagger' :
+      weapon.type === "长枪" ? 'attack_spear' :
+        weapon.type === "锤" ? 'attack_hammer' : 'attack_sword'
+  );
   const target = nearestAttackShapeTarget(spec, attackEntityFilter);
   if (!target) {
     const blockedMonster = state.player.monsterForm && nearestAttackShapeTarget(spec, () => true)?.faction === "monster";

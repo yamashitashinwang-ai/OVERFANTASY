@@ -2,6 +2,7 @@ import { chromium } from 'playwright';
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+const baseUrl = process.env.PROBE_BASE_URL || 'http://localhost:5175/';
 const errors: string[] = [];
 page.on('pageerror', e => errors.push(`PAGE: ${e.message}`));
 page.on('console', m => { if (m.type() === 'error') errors.push(`CON: ${m.text()}`); });
@@ -19,7 +20,7 @@ function fail(message: string): never {
 }
 
 async function bootGame() {
-  await page.goto('http://localhost:5174/', { waitUntil: 'networkidle' });
+  await page.goto(baseUrl, { waitUntil: 'networkidle' });
   await page.waitForTimeout(1000);
   await page.evaluate(() => document.querySelector('[data-menu-action="new"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true })));
   await page.waitForTimeout(200);

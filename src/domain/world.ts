@@ -81,6 +81,15 @@ export function addObject(kind: string, name: string, x: number, y: number, w: n
   return obj;
 }
 
+export function addEnvironmentObject(kind: string, name: string, x: number, y: number, w: number, h: number, color: string, collisionProfile = "none"): WorldObjectState {
+  const obj: WorldObjectState = { id: makeRuntimeId(`env:${kind}`), ownerId: worldOwnerId, kind, name, x, y, w, h, color };
+  obj.environment = true;
+  obj.visualOnly = collisionProfile === "none";
+  obj.collisionProfile = collisionProfile;
+  state.objects.push(obj);
+  return obj;
+}
+
 export function addEntity(entity: ActorState): ActorState {
   if (!entity.id) entity.id = makeRuntimeId(entity.species || entity.kind || "entity");
   if (!entity.ownerId) entity.ownerId = worldOwnerId;

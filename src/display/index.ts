@@ -11,6 +11,9 @@ import { syncPlayerDisplay, syncEntityDisplay, syncObjectDisplay,
 import { syncWeaponDisplay, syncArrowsDisplay, syncEffectsDisplay } from './effects.ts';
 import { syncHudDisplay } from './hud.ts';
 import { initDebugHud, syncDebugHud } from './debug-hud.ts';
+import { initCollisionDebug, syncCollisionDebug } from './collision-debug.ts';
+import { initAnimationFeedback } from './animations.ts';
+import { ensurePlaceholderArt } from './placeholder-art.ts';
 
 // Re-export the public API so callers can import everything from one place.
 export { rebuildDisplay } from './world.ts';
@@ -33,10 +36,12 @@ export function syncAllDisplay() {
   syncEffectsDisplay();
   syncHudDisplay();
   syncDebugHud();
+  syncCollisionDebug();
 }
 
 export function initDisplay(scene: Phaser.Scene) {
   D.pScene = scene;
+  ensurePlaceholderArt(scene);
 
   D.pickupsGfx     = scene.add.graphics().setDepth(2);
   D.petRemainsGfx  = scene.add.graphics().setDepth(3);
@@ -90,4 +95,6 @@ export function initDisplay(scene: Phaser.Scene) {
   // time. Use this when something looks "broken" — read the values and tell
   // me which one is wrong instead of guessing.
   initDebugHud(scene);
+  initCollisionDebug(scene);
+  initAnimationFeedback(scene);
 }

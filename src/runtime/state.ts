@@ -26,6 +26,9 @@ export const runtime: RuntimeState = {
   hitStopTimer: 0,
   aimVector: { x: 1, y: 0 },
   aimWorld: null,
+  aimDirection: null,
+  facingDirection: null,
+  pointerInside: false,
   mvKeys: null,
   pSceneRef: null
 };

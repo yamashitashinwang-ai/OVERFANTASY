@@ -29,6 +29,12 @@ import type { Vector2 } from '../domain/types.ts';
 const { regions } = DATA;
 
 export function playerAimAngle(): number {
+  if (runtime.aimWorld) {
+    const dx = runtime.aimWorld.x - state.player.x;
+    const dy = runtime.aimWorld.y - state.player.y;
+    const len = Math.hypot(dx, dy);
+    if (len > 0.02) runtime.aimVector = { x: dx / len, y: dy / len };
+  }
   return Math.atan2(runtime.aimVector.y, runtime.aimVector.x);
 }
 
@@ -105,17 +111,18 @@ const TILE = 32;
 
 export function installPointerInputs(scene: Phaser.Scene) {
   scene.input.mouse.disableContextMenu();
-  scene.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+  const capturePointerAim = (pointer: Phaser.Input.Pointer) => {
+    runtime.pointerInside = true;
     const wx = pointer.worldX / TILE;
     const wy = pointer.worldY / TILE;
     runtime.aimVector = normalizeWithAim(wx - state.player.x, wy - state.player.y);
     runtime.aimWorld = { x: wx, y: wy };
-  });
+  };
+  scene.input.on('gameover', () => { runtime.pointerInside = true; });
+  scene.input.on('gameout', () => { runtime.pointerInside = false; });
+  scene.input.on('pointermove', capturePointerAim);
   scene.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-    const wx = pointer.worldX / TILE;
-    const wy = pointer.worldY / TILE;
-    runtime.aimVector = normalizeWithAim(wx - state.player.x, wy - state.player.y);
-    runtime.aimWorld = { x: wx, y: wy };
+    capturePointerAim(pointer);
     if (!isPlaying() || hasCorruptionControlLock() || uiState.backpackOpen || uiState.questOpen || uiState.shopOpen || uiState.forgeOpen || uiState.magicOpen) return;
     if (pointer.leftButtonDown()) {
       if (!beginBowCharge()) playerAttack();

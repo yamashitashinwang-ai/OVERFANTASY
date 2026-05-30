@@ -4,17 +4,82 @@
 import { display as D } from './runtime.ts';
 import type Phaser from 'phaser';
 import { hexToInt } from './colors.ts';
-import { state, flyingArrows, magicEffects, getAttackEffect, getBowCharge } from '../runtime/state.ts';
+import { state, runtime, flyingArrows, magicEffects, getAttackEffect, getBowCharge } from '../runtime/state.ts';
 import { tile } from '../runtime/constants.ts';
 import { clamp } from '../domain/math.ts';
 import { currentWeapon } from '../domain/combat/weapon.ts';
 import { bowChargeProgress, bowShotStats, isBowWeapon } from '../domain/combat/bow.ts';
 import { canUseWorldActions } from '../domain/combat/targeting.ts';
 import { playerAimAngle } from '../scenes/game-scene-helpers.ts';
+import { directionFromAngle, handOffsetForFacing, isFacingDir, playerAnimatedMountOffsetsForFacing } from './facing.ts';
+import type { FacingDir, PlayerMountPose } from './facing.ts';
+import type { AttackHitZone } from '../domain/types.ts';
 
 interface ArrowFillStyle {
   color: number;
   alpha?: number;
+}
+
+function currentFacingDirection(): FacingDir {
+  const candidate = runtime.facingDirection || runtime.aimDirection;
+  if (isFacingDir(candidate)) return candidate;
+  return directionFromAngle(playerAimAngle());
+}
+
+function currentPlayerMountPose(): PlayerMountPose {
+  const body = D.playerCircle?.body as { velocity?: { x?: number; y?: number } } | null | undefined;
+  const speed = Math.hypot(body?.velocity?.x ?? 0, body?.velocity?.y ?? 0);
+  const moving = speed > 1 || state.player.running;
+  if (!moving) return 'idle';
+  const phase = Math.floor(state.time * (state.player.running ? 11 : 7)) % 2;
+  if (state.player.running) return phase === 0 ? 'run0' : 'run1';
+  return phase === 0 ? 'walk0' : 'walk1';
+}
+
+function playerVisualWeaponAnchor() {
+  const facing = currentFacingDirection();
+  const baseX = D.playerCircle?.x ?? state.player.x * tile;
+  const baseY = D.playerCircle?.y ?? state.player.y * tile;
+  const mounts = playerAnimatedMountOffsetsForFacing(facing, currentPlayerMountPose());
+  return {
+    facing,
+    x: baseX + mounts.weapon.x,
+    y: baseY + mounts.weapon.y,
+    front: mounts.weapon.front
+  };
+}
+
+function playerStaticWeaponAnchor() {
+  const facing = currentFacingDirection();
+  const baseX = state.player.x * tile;
+  const baseY = state.player.y * tile;
+  const offset = handOffsetForFacing(facing);
+  return {
+    facing,
+    x: baseX + offset.x,
+    y: baseY + offset.y,
+    front: offset.front
+  };
+}
+
+function drawOrientedRect(
+  gfx: Phaser.GameObjects.Graphics,
+  cx: number,
+  cy: number,
+  ux: number,
+  uy: number,
+  px: number,
+  py: number,
+  halfLength: number,
+  halfWidth: number
+) {
+  gfx.beginPath();
+  gfx.moveTo(cx + ux * halfLength + px * halfWidth, cy + uy * halfLength + py * halfWidth);
+  gfx.lineTo(cx - ux * halfLength + px * halfWidth, cy - uy * halfLength + py * halfWidth);
+  gfx.lineTo(cx - ux * halfLength - px * halfWidth, cy - uy * halfLength - py * halfWidth);
+  gfx.lineTo(cx + ux * halfLength - px * halfWidth, cy + uy * halfLength - py * halfWidth);
+  gfx.closePath();
+  gfx.fillPath();
 }
 
 export function drawDashedLineGfx(
@@ -94,12 +159,13 @@ export function drawArrowShapeGfx(
 export function syncWeaponDisplay() {
   if (!D.weaponGfx) return;
   D.weaponGfx.clear();
-  // Anchor the weapon on the player's *body pixel position* — not on the
-  // pixel→tile→pixel round trip via state.player.x. The round trip
-  // introduces sub-pixel rounding that makes the weapon jitter relative to
-  // the player sprite when moving.
-  const x = D.playerCircle?.x ?? state.player.x * tile;
-  const y = D.playerCircle?.y ?? state.player.y * tile;
+  // Anchor the weapon on an 8-direction hand mount derived from current facing.
+  // The weapon graphic is still visual-only; attack hitboxes keep using aimAngle.
+  const hand = playerVisualWeaponAnchor();
+  const x = hand.x;
+  const y = hand.y;
+  const playerDepth = D.playerSprite?.depth ?? 6;
+  D.weaponGfx.setDepth(hand.front ? playerDepth + 0.08 : playerDepth - 0.08);
   const weapon = currentWeapon();
   const angle = playerAimAngle();
   const ux = Math.cos(angle);
@@ -114,13 +180,15 @@ export function syncWeaponDisplay() {
     const lw = weapon.name === '剑的概念' ? 5 : 3;
     D.weaponGfx.lineStyle(lw, c, 1);
     D.weaponGfx.beginPath();
-    D.weaponGfx.moveTo(x + ux * 8, y + uy * 8);
+    D.weaponGfx.moveTo(x - ux * 4, y - uy * 4);
     D.weaponGfx.lineTo(x + ux * length, y + uy * length);
     D.weaponGfx.strokePath();
+    D.weaponGfx.fillStyle(0x6f4a2f, 1);
+    D.weaponGfx.fillCircle(x, y, lw + 1);
   } else if (weapon.type === '长枪') {
     D.weaponGfx.lineStyle(3, c, 1);
     D.weaponGfx.beginPath();
-    D.weaponGfx.moveTo(x + ux * 7, y + uy * 7);
+    D.weaponGfx.moveTo(x - ux * 10, y - uy * 10);
     D.weaponGfx.lineTo(x + ux * 48, y + uy * 48);
     D.weaponGfx.strokePath();
     D.weaponGfx.fillStyle(c, 1);
@@ -132,21 +200,23 @@ export function syncWeaponDisplay() {
   } else if (weapon.type === '锤') {
     D.weaponGfx.lineStyle(4, c, 1);
     D.weaponGfx.beginPath();
-    D.weaponGfx.moveTo(x + ux * 7, y + uy * 7);
+    D.weaponGfx.moveTo(x - ux * 4, y - uy * 4);
     D.weaponGfx.lineTo(x + ux * 27, y + uy * 27);
     D.weaponGfx.strokePath();
     D.weaponGfx.fillStyle(c, 1);
-    D.weaponGfx.fillRect(x + ux * 28 - px * 7 - 5, y + uy * 28 - py * 7 - 5, 14, 10);
+    drawOrientedRect(D.weaponGfx, x + ux * 30, y + uy * 30, ux, uy, px, py, 6, 9);
   } else if (weapon.type === '匕首') {
     D.weaponGfx.lineStyle(3, c, 1);
     D.weaponGfx.beginPath();
-    D.weaponGfx.moveTo(x + ux * 8, y + uy * 8);
+    D.weaponGfx.moveTo(x - ux * 3, y - uy * 3);
     D.weaponGfx.lineTo(x + ux * 19, y + uy * 19);
     D.weaponGfx.strokePath();
+    D.weaponGfx.fillStyle(0x6f4a2f, 1);
+    D.weaponGfx.fillCircle(x, y, 3);
   } else if (weapon.type === '弓') {
     D.weaponGfx.lineStyle(3, c, 1);
-    const bx = x + ux * 16;
-    const by = y + uy * 16;
+    const bx = x + ux * 8;
+    const by = y + uy * 8;
     D.weaponGfx.beginPath();
     D.weaponGfx.arc(bx, by, 15, angle - 1.15, angle + 1.15, false);
     D.weaponGfx.strokePath();
@@ -159,7 +229,7 @@ export function syncWeaponDisplay() {
     D.weaponGfx.lineStyle(2, c, 1);
     for (const offset of [-5, 0, 5]) {
       D.weaponGfx.beginPath();
-      D.weaponGfx.moveTo(x + ux * 9 + px * offset, y + uy * 9 + py * offset);
+      D.weaponGfx.moveTo(x + px * offset, y + py * offset);
       D.weaponGfx.lineTo(x + ux * 21 + px * offset, y + uy * 21 + py * offset);
       D.weaponGfx.strokePath();
     }
@@ -185,9 +255,9 @@ export function syncArrowsDisplay() {
     const charge = bowChargeProgress();
     const stats = bowShotStats(weapon, charge);
     const angle = playerAimAngle();
-    const p = state.player;
-    const x = p.x * tile;
-    const y = p.y * tile;
+    const hand = playerStaticWeaponAnchor();
+    const x = hand.x;
+    const y = hand.y;
     const endX = x + Math.cos(angle) * stats.range * tile;
     const endY = y + Math.sin(angle) * stats.range * tile;
     D.arrowGfx.lineStyle(2 + charge * 2, 0xedf3f7, 0.48 + charge * 0.42);
@@ -204,79 +274,81 @@ export function syncEffectsDisplay() {
   if (!D.effectsGfx) return;
   D.effectsGfx.clear();
 
-  if (getAttackEffect()) {
+  const attack = getAttackEffect();
+  if (attack) {
     const p = state.player;
-    const x = p.x * tile;
-    const y = p.y * tile;
-    const progress = clamp(getAttackEffect().time / getAttackEffect().duration, 0, 1);
-    const alpha = getAttackEffect().critical ? 0.58 : 0.46;
-    const ux = Math.cos(getAttackEffect().angle);
-    const uy = Math.sin(getAttackEffect().angle);
-    const px = -uy;
-    const py = ux;
-    const c = hexToInt(getAttackEffect().color);
+    const mainZone = attack.zones?.find(zone => zone.role === 'main') as AttackHitZone | undefined;
+    const originX = (mainZone && mainZone.shape !== 'circle' ? mainZone.x : (attack.handX || p.x)) * tile;
+    const originY = (mainZone && mainZone.shape !== 'circle' ? mainZone.y : (attack.handY || p.y)) * tile;
+    const progress = clamp((attack.time || 0) / attack.duration, 0, 1);
+    const alpha = attack.critical ? 0.58 : 0.46;
+    const ux = Math.cos(attack.angle);
+    const uy = Math.sin(attack.angle);
+    const c = hexToInt(attack.color);
 
-    if (getAttackEffect().effect === 'slash') {
-      const radius = getAttackEffect().reach * tile;
-      const start = getAttackEffect().angle - getAttackEffect().halfAngle;
-      const end = getAttackEffect().angle + getAttackEffect().halfAngle;
+    if (attack.effect === 'slash') {
+      const radius = (mainZone?.shape === 'sector' ? mainZone.reach : attack.reach) * tile;
+      const halfAngle = mainZone?.shape === 'sector' ? mainZone.halfAngle : attack.halfAngle;
+      const start = attack.angle - halfAngle;
+      const end = attack.angle + halfAngle;
       D.effectsGfx.fillStyle(c, alpha * (1 - progress * 0.35));
       D.effectsGfx.beginPath();
-      D.effectsGfx.moveTo(x, y);
-      D.effectsGfx.arc(x, y, radius, start, end, false);
+      D.effectsGfx.moveTo(originX, originY);
+      D.effectsGfx.arc(originX, originY, radius, start, end, false);
       D.effectsGfx.closePath();
       D.effectsGfx.fillPath();
-      const lw = getAttackEffect().lineWidth + 1 + (getAttackEffect().critical ? 2 : 0);
-      D.effectsGfx.lineStyle(lw, c, getAttackEffect().critical ? 1 : 0.92);
+      const lw = attack.lineWidth + 1 + (attack.critical ? 2 : 0);
+      D.effectsGfx.lineStyle(lw, c, attack.critical ? 1 : 0.92);
       D.effectsGfx.beginPath();
-      D.effectsGfx.arc(x, y, radius * (0.78 + progress * 0.18),
-        start + getAttackEffect().halfAngle * 0.16, end - getAttackEffect().halfAngle * 0.16, false);
+      D.effectsGfx.arc(originX, originY, radius * (0.78 + progress * 0.18),
+        start + halfAngle * 0.16, end - halfAngle * 0.16, false);
       D.effectsGfx.strokePath();
-    } else if (getAttackEffect().effect === 'thrust') {
-      const reach = getAttackEffect().reach * tile;
+    } else if (attack.effect === 'thrust') {
+      const reach = (mainZone?.shape === 'line' ? mainZone.reach : attack.reach) * tile;
       const length = reach * (0.7 + progress * 0.3);
-      D.effectsGfx.lineStyle(Math.max(12, getAttackEffect().halfWidth * tile * 2), c, 0.38);
+      const halfWidth = mainZone?.shape === 'line' ? mainZone.halfWidth : attack.halfWidth;
+      D.effectsGfx.lineStyle(Math.max(12, halfWidth * tile * 2), c, 0.38);
       D.effectsGfx.beginPath();
-      D.effectsGfx.moveTo(x + ux * 8, y + uy * 8);
-      D.effectsGfx.lineTo(x + ux * length, y + uy * length);
+      D.effectsGfx.moveTo(originX, originY);
+      D.effectsGfx.lineTo(originX + ux * length, originY + uy * length);
       D.effectsGfx.strokePath();
       D.effectsGfx.lineStyle(4, c, 0.9);
       D.effectsGfx.beginPath();
-      D.effectsGfx.moveTo(x + ux * 10, y + uy * 10);
-      D.effectsGfx.lineTo(x + ux * (length + 10), y + uy * (length + 10));
+      D.effectsGfx.moveTo(originX + ux * 2, originY + uy * 2);
+      D.effectsGfx.lineTo(originX + ux * (length + 10), originY + uy * (length + 10));
       D.effectsGfx.strokePath();
-    } else if (getAttackEffect().effect === 'hammer') {
-      const cx = x + ux * getAttackEffect().centerDist * tile;
-      const cy = y + uy * getAttackEffect().centerDist * tile;
-      const radius = getAttackEffect().radius * tile * (0.82 + progress * 0.18);
+    } else if (attack.effect === 'hammer') {
+      const cx = (mainZone?.shape === 'circle' ? mainZone.x : (originX / tile + ux * attack.centerDist)) * tile;
+      const cy = (mainZone?.shape === 'circle' ? mainZone.y : (originY / tile + uy * attack.centerDist)) * tile;
+      const radius = (mainZone?.shape === 'circle' ? mainZone.radius : attack.radius) * tile * (0.82 + progress * 0.18);
       D.effectsGfx.fillStyle(c, 0.32);
       D.effectsGfx.fillCircle(cx, cy, radius);
-      D.effectsGfx.lineStyle(getAttackEffect().lineWidth, c, 0.92);
+      D.effectsGfx.lineStyle(attack.lineWidth, c, 0.92);
       D.effectsGfx.strokeCircle(cx, cy, radius);
-    } else if (getAttackEffect().effect === 'claw') {
-      const radius = getAttackEffect().reach * tile;
+    } else if (attack.effect === 'claw') {
+      const radius = (mainZone?.shape === 'sector' ? mainZone.reach : attack.reach) * tile;
       D.effectsGfx.fillStyle(c, 0.32);
       D.effectsGfx.beginPath();
-      D.effectsGfx.moveTo(x, y);
-      D.effectsGfx.arc(x, y, radius, getAttackEffect().angle - Math.PI / 2, getAttackEffect().angle + Math.PI / 2, false);
+      D.effectsGfx.moveTo(originX, originY);
+      D.effectsGfx.arc(originX, originY, radius, attack.angle - Math.PI / 2, attack.angle + Math.PI / 2, false);
       D.effectsGfx.closePath();
       D.effectsGfx.fillPath();
-      D.effectsGfx.lineStyle(getAttackEffect().lineWidth, c, 0.9);
+      D.effectsGfx.lineStyle(attack.lineWidth, c, 0.9);
       for (const offset of [-0.34, 0, 0.34]) {
-        const a = getAttackEffect().angle + offset;
-        const sx = x + Math.cos(a) * 14;
-        const sy = y + Math.sin(a) * 14;
-        const ex = x + Math.cos(a) * radius;
-        const ey = y + Math.sin(a) * radius;
+        const a = attack.angle + offset;
+        const sx = originX + Math.cos(a) * 6;
+        const sy = originY + Math.sin(a) * 6;
+        const ex = originX + Math.cos(a) * radius;
+        const ey = originY + Math.sin(a) * radius;
         D.effectsGfx.beginPath();
         D.effectsGfx.moveTo(sx, sy);
         D.effectsGfx.lineTo(ex, ey);
         D.effectsGfx.strokePath();
       }
     }
-    if (getAttackEffect().critical) {
+    if (attack.critical) {
       D.effectsGfx.lineStyle(2, 0xffffff, 0.8);
-      D.effectsGfx.strokeCircle(x + ux * 28, y + uy * 28, 8 + progress * 10);
+      D.effectsGfx.strokeCircle(originX + ux * 28, originY + uy * 28, 8 + progress * 10);
     }
   }
 

@@ -4,7 +4,7 @@
 
 import type Phaser from 'phaser';
 import { display as D } from './runtime.ts';
-import { hexToInt } from './colors.ts';
+import { drawTileCell } from './placeholder-art.ts';
 import DATA from '../data.ts';
 import { tile } from '../runtime/constants.ts';
 
@@ -18,10 +18,7 @@ export function ensureTileTextures() {
   const numTiles = D.tileTypeList.length;
   const g = D.pScene.make.graphics(graphicsConfig({ x: 0, y: 0, add: false }));
   D.tileTypeList.forEach((type, i) => {
-    g.fillStyle(hexToInt(colors[type]), 1);
-    g.fillRect(i * tile, 0, tile, tile);
-    g.lineStyle(1, 0x000000, 0.11);
-    g.strokeRect(i * tile + 0.5, 0.5, tile - 1, tile - 1);
+    drawTileCell(g, type, i * tile, 0, tile, colors[type]);
   });
   g.generateTexture('tiles', numTiles * tile, tile);
   g.destroy();

@@ -5,10 +5,26 @@
 import { state } from '../runtime/state.ts';
 import { rand } from './math.ts';
 import {
-  addObject, addEntity, addPickup, addPortal,
+  addObject, addEnvironmentObject, addEntity, addPickup, addPortal,
   spawnCreature, scatterPickups
 } from './world.ts';
 import { syncLostPackagePickupsForScene } from './lost-packages.ts';
+
+function addTree(name: string, x: number, y: number) {
+  return addEnvironmentObject("tree", name, x, y, 2, 3, "#3f7a4a", "treeTrunk");
+}
+
+function addBush(name: string, x: number, y: number) {
+  return addEnvironmentObject("bush", name, x, y, 1.4, 1.1, "#3f9d55");
+}
+
+function addLeaves(name: string, x: number, y: number) {
+  return addEnvironmentObject("leafPile", name, x, y, 1.3, 0.8, "#b87a36");
+}
+
+function addWindFlag(name: string, x: number, y: number) {
+  return addEnvironmentObject("windFlag", name, x, y, 1, 2, "#8d77a6");
+}
 
 export function spawnWorld(scene = state.scene) {
   state.entities = [];
@@ -23,6 +39,13 @@ export function spawnWorld(scene = state.scene) {
     addObject("shrine", "白石祠", 15, 12, 2, 2, "#ccd2dc", "cleanse");
     addObject("magicCottage", "魔法爱好者小屋", 21, 7, 3, 3, "#5f83b7", "magicCottage");
     addObject("forge", "锻造台", 31, 27, 2, 2, "#a6654f", "forge");
+    addTree("村口槐树", 4.5, 18.2);
+    addTree("井边小树", 18.8, 17.2);
+    addTree("路边老树", 37.5, 16.2);
+    addBush("屋后草丛", 4.2, 10.2);
+    addBush("白石草丛", 18.0, 14.5);
+    addBush("铁匠铺草丛", 35.0, 29.8);
+    addWindFlag("公会布旗", 4.8, 13.4);
     addPortal("field", "west_exit_to_peakless", "无峰山脉西路", 3, 25, "peakless", "east_entry_from_field", "#8b8170");
     addPortal("field", "north_exit_to_forest", "北部森林路标", 76, 24, "forest", "south_entry_from_village", "#5e9c63");
     addPortal("field", "east_exit_to_ruins", "旧王城路标", 84, 55, "ruins", "west_entry_from_field", "#726a7d");
@@ -49,6 +72,19 @@ export function spawnWorld(scene = state.scene) {
     addPortal("forest", "south_exit_to_village", "回到晨风原野", 4, 33, "field", "north_entry_from_forest", "#83745c");
     addPortal("forest", "east_exit_to_ruins", "沼泽古径", 83, 61, "ruins", "southwest_entry_from_forest", "#5e8a86");
     addObject("shrine", "树根祠", 43, 31, 2, 2, "#ccd2dc", "cleanse");
+    addTree("林道杉树", 17.5, 12.2);
+    addTree("南林老树", 18.5, 42.2);
+    addTree("树根祠后树冠", 39.2, 26.4);
+    addTree("溪边树影", 61.5, 19.4);
+    addTree("沼泽边树", 72.5, 47.2);
+    addTree("古径树冠", 84.5, 51.5);
+    addBush("林下草丛", 24.5, 20.6);
+    addBush("潮湿草丛", 66.0, 53.4);
+    addBush("南路草丛", 14.0, 49.5);
+    addBush("树根草丛", 47.0, 34.5);
+    addLeaves("落叶堆", 30.5, 15.8);
+    addLeaves("红叶堆", 51.5, 41.6);
+    addLeaves("沼泽落叶", 78.5, 58.0);
     spawnCreature("treant", 35.5, 24.5, { region: "forest", affection: 0, devotion: 0 });
     spawnCreature("treant", 55.5, 39.5, { region: "forest", affection: 0, devotion: 0 });
     for (let i = 0; i < 18; i += 1) spawnCreature("rabbit", rand(9, 70), rand(7, 45), { region: "forest" });

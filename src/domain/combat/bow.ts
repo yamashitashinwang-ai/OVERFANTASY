@@ -15,9 +15,12 @@ import { addArrowPickup, dropEmbeddedArrows } from './arrows.ts';
 import { playerAimAngle } from '../../scenes/game-scene-helpers.ts';
 import { log, toast } from '../../runtime/services.ts';
 import { renderStats } from '../../ui/stats.ts';
+import { triggerPlayerAttackPlaceholder } from '../../display/animations.ts';
+import { bowProjectileOrigin } from './bow-trajectory.ts';
 import type { ActorState, ArrowProjectile, GearCatalogItem } from '../types.ts';
 
 export { addArrowPickup, dropEmbeddedArrows };
+export { bowProjectileOrigin } from './bow-trajectory.ts';
 
 export function isBowWeapon(weapon: GearCatalogItem = currentWeapon()): boolean {
   return weapon?.type === '弓';
@@ -81,17 +84,19 @@ export function fireArrow(charge: number, rushedAttack = false) {
   state.player.arrows -= 1;
   state.player.stamina = Math.max(0, state.player.stamina - weapon.stamina);
   state.player.attackCooldown = weapon.cooldown;
+  triggerPlayerAttackPlaceholder('attack_bow');
   const angle = playerAimAngle();
   const stats = bowShotStats(weapon, clamp(charge, 0, 1));
   const ux = Math.cos(angle);
   const uy = Math.sin(angle);
+  const origin = bowProjectileOrigin(angle);
   flyingArrows.push({
-    x: state.player.x,
-    y: state.player.y,
-    startX: state.player.x,
-    startY: state.player.y,
-    endX: state.player.x + ux * stats.range,
-    endY: state.player.y + uy * stats.range,
+    x: origin.x,
+    y: origin.y,
+    startX: origin.x,
+    startY: origin.y,
+    endX: origin.x + ux * stats.range,
+    endY: origin.y + uy * stats.range,
     vx: ux * stats.speed,
     vy: uy * stats.speed,
     speed: stats.speed,
