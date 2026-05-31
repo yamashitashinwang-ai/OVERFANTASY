@@ -7,6 +7,12 @@ import type Phaser from 'phaser';
 import { hexToInt } from './colors.ts';
 import { attachCircleBody, rebuildPhysicsForMap } from './physics.ts';
 import { ensureTileTextures } from './tiles.ts';
+import { PlayerRig } from './player-rig.ts';
+import {
+  playerIdleCycleProgress,
+  playerLocomotionCycleProgress,
+  playerLocomotionPose
+} from './player-animation-timing.ts';
 import {
   facingFromDelta, playerTextureKey, entityTextureKey, petTextureKey, objectTextureKey
 } from './placeholder-art.ts';
@@ -105,6 +111,10 @@ export function rebuildDisplay() {
     D.playerSprite.setOrigin(0.5, 0.88);
     D.playerSprite.setDepth(6);
   }
+  D.playerSprite.setVisible(false);
+  if (!D.playerRig) {
+    D.playerRig = new PlayerRig(D.pScene);
+  }
   // Attach physics body to player (idempotent)
   if (!D.playerCircle.body) attachCircleBody(D.playerCircle, state.player.r, true);
   // Teleport body to spawn position (overrides any leftover velocity).
@@ -126,28 +136,48 @@ export function syncPlayerDisplay() {
   if (!D.playerCircle) return;
   const p = state.player;
   D.playerCircle.setVisible(false);
+  const dx = D.playerCircle.x - lastPlayerPixel.x;
+  const dy = D.playerCircle.y - lastPlayerPixel.y;
+  const moving = Math.hypot(dx, dy) > 0.35 || p.running;
+  syncPlayerFacingFromAim(dx, dy);
+  const basePose: PlayerPose = moving ? playerLocomotionPose(state.time, p.running) : 'idle';
+  const pose = currentPlayerPoseOverride() || basePose;
+  const animationProgress = moving
+    ? playerLocomotionCycleProgress(state.time, p.running)
+    : playerIdleCycleProgress(state.time);
+  const visual = playerVisualAdjust(playerFacing);
+  const invulnOffsetY = p.invuln > 0 ? Math.sin(state.time * 28) * 1.5 : 0;
+  let tint: number | null = null;
+  if (visual.tint) tint = visual.tint;
+  else if (p.blockTimer > 0) tint = 0x9ed6ff;
+  else if (currentWeapon().name === '剑的概念') tint = 0xfff4b0;
+
   if (D.playerSprite) {
-    const dx = D.playerCircle.x - lastPlayerPixel.x;
-    const dy = D.playerCircle.y - lastPlayerPixel.y;
-    const moving = Math.hypot(dx, dy) > 0.35 || p.running;
-    syncPlayerFacingFromAim(dx, dy);
-    const phase = Math.floor(state.time * (p.running ? 11 : 7)) % 2 as 0 | 1;
-    const basePose: PlayerPose = moving ? (p.running ? (phase === 0 ? 'run0' : 'run1') : (phase === 0 ? 'walk0' : 'walk1')) : 'idle';
-    const pose = currentPlayerPoseOverride() || basePose;
-    const visual = playerVisualAdjust(playerFacing);
     D.playerSprite.setTexture(playerTextureKey(playerFacing, pose, !!p.monsterForm));
     D.playerSprite.setPosition(
       D.playerCircle.x + visual.offsetX,
-      D.playerCircle.y + visual.offsetY + (p.invuln > 0 ? Math.sin(state.time * 28) * 1.5 : 0)
+      D.playerCircle.y + visual.offsetY + invulnOffsetY
     );
     D.playerSprite.setScale(visual.scale);
     D.playerSprite.setDepth(6 + D.playerCircle.y / 100000);
-    if (visual.tint) D.playerSprite.setTint(visual.tint);
-    else if (p.blockTimer > 0) D.playerSprite.setTint(0x9ed6ff);
-    else if (currentWeapon().name === '剑的概念') D.playerSprite.setTint(0xfff4b0);
+    D.playerSprite.setVisible(false);
+    if (tint) D.playerSprite.setTint(tint);
     else D.playerSprite.clearTint();
-    lastPlayerPixel = { x: D.playerCircle.x, y: D.playerCircle.y };
   }
+  D.playerRig?.sync({
+    x: D.playerCircle.x,
+    y: D.playerCircle.y,
+    facing: playerFacing,
+    pose,
+    animationProgress,
+    monsterForm: !!p.monsterForm,
+    visualOffsetX: visual.offsetX,
+    visualOffsetY: visual.offsetY + invulnOffsetY,
+    visualScale: visual.scale,
+    tint,
+    depth: 6 + D.playerCircle.y / 100000
+  });
+  lastPlayerPixel = { x: D.playerCircle.x, y: D.playerCircle.y };
   syncCorruptionAura();
 }
 

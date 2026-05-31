@@ -1,8 +1,9 @@
 import { chromium } from 'playwright';
+import { probeBaseUrl } from './probe-url.ts';
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
-const baseUrl = process.env.PROBE_BASE_URL || 'http://localhost:5175/';
+const baseUrl = probeBaseUrl();
 const errors: string[] = [];
 page.on('pageerror', e => errors.push(`PAGE: ${e.message}`));
 page.on('console', m => { if (m.type() === 'error') errors.push(`CON: ${m.text()}`); });

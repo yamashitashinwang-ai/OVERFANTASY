@@ -3,6 +3,7 @@
 
 import { display as D } from './runtime.ts';
 import type Phaser from 'phaser';
+import { playerLocomotionPose } from './player-animation-timing.ts';
 import { hexToInt } from './colors.ts';
 import { state, runtime, flyingArrows, magicEffects, getAttackEffect, getBowCharge } from '../runtime/state.ts';
 import { tile } from '../runtime/constants.ts';
@@ -31,13 +32,20 @@ function currentPlayerMountPose(): PlayerMountPose {
   const speed = Math.hypot(body?.velocity?.x ?? 0, body?.velocity?.y ?? 0);
   const moving = speed > 1 || state.player.running;
   if (!moving) return 'idle';
-  const phase = Math.floor(state.time * (state.player.running ? 11 : 7)) % 2;
-  if (state.player.running) return phase === 0 ? 'run0' : 'run1';
-  return phase === 0 ? 'walk0' : 'walk1';
+  return playerLocomotionPose(state.time, state.player.running);
 }
 
 function playerVisualWeaponAnchor() {
   const facing = currentFacingDirection();
+  const rigAnchor = D.playerRig?.weaponAnchorWorld();
+  if (rigAnchor) {
+    return {
+      facing,
+      x: rigAnchor.x,
+      y: rigAnchor.y,
+      front: rigAnchor.front
+    };
+  }
   const baseX = D.playerCircle?.x ?? state.player.x * tile;
   const baseY = D.playerCircle?.y ?? state.player.y * tile;
   const mounts = playerAnimatedMountOffsetsForFacing(facing, currentPlayerMountPose());
@@ -164,7 +172,7 @@ export function syncWeaponDisplay() {
   const hand = playerVisualWeaponAnchor();
   const x = hand.x;
   const y = hand.y;
-  const playerDepth = D.playerSprite?.depth ?? 6;
+  const playerDepth = D.playerRig?.depth ?? D.playerSprite?.depth ?? 6;
   D.weaponGfx.setDepth(hand.front ? playerDepth + 0.08 : playerDepth - 0.08);
   const weapon = currentWeapon();
   const angle = playerAimAngle();

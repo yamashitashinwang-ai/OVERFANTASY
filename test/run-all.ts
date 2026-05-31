@@ -1,8 +1,8 @@
 // Runs every E2E probe in sequence. Expects `npm run dev` to be running.
 //
 // Usage:
-//   npm run dev -- --port 5174 &
-//   npm test
+//   npm run dev -- --port 5175 --host 0.0.0.0 &
+//   PROBE_BASE_URL=http://server:5175/ npm test
 
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';

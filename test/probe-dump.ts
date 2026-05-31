@@ -4,8 +4,7 @@
 // of re-running 5 different probes.
 //
 // Usage:
-//   npm run dev -- --port 5174 &
-//   node test/probe-dump.mjs [scenario...]
+//   PROBE_BASE_URL=http://server:5175/ npx tsx test/probe-dump.ts [scenario...]
 //
 // Scenarios: dodge | wolves | save-load | all   (default: all)
 
@@ -13,6 +12,7 @@ import { chromium } from 'playwright';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { probeBaseUrl } from './probe-url.ts';
 
 const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'test-output');
 mkdirSync(OUT, { recursive: true });
@@ -34,7 +34,7 @@ page.on('console', m => {
   if (text.startsWith('[invariant]')) invariantBreaks.push({ t: Date.now(), msg: text });
 });
 
-await page.goto('http://localhost:5174/', { waitUntil: 'networkidle' });
+await page.goto(probeBaseUrl(), { waitUntil: 'networkidle' });
 await page.waitForTimeout(1500);
 await page.evaluate(() => document.querySelector('[data-menu-action="new"]')?.click());
 await page.waitForTimeout(300);

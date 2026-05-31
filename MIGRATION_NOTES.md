@@ -281,3 +281,55 @@ The bow charge dashed guide remains unchanged. Actual arrows now use the same ha
 ### Scope Guard
 
 This only aligns bow projectile trajectory data with the existing visual guide. It does not change the dashed guide rendering, melee logic, magic, movement, collision, map teleport, backpack, shop, forge, race, death, or corruption systems.
+
+## 2026-05-31 - Runtime segmented player rig
+
+### Change
+
+The player visual is now driven by a lightweight runtime `PlayerRig` instead of relying only on pre-rendered whole-body sprite frames:
+
+- the rig root stays anchored to the existing hidden `playerCircle`
+- head, torso, upper arms, forearms, thighs, shins, hands, and feet are separate Phaser image parts inside one container
+- each part is positioned by a data-driven 8-direction pose solver
+- idle, walk, and run update local joint positions and rotations rather than changing gameplay state
+- run uses the same pose structure as walk with stronger visual swing
+- the semantic right hand remains the weapon mount in every facing direction
+
+The old whole-player generated sprite textures are still produced and kept as a hidden fallback so current animation triggers and tests remain compatible.
+
+### Separation
+
+This is a visual-layer change only. Player movement, collision, camera follow, map teleport execution, melee hitboxes, bow projectile origin, magic targeting, backpack, shop, forge, race, death, and corruption logic continue to read the existing state and physics bodies.
+
+Weapon graphics now prefer the current rig right-hand mount when available. Combat and bow projectile calculations keep using the existing separate gameplay hand offsets, so idle/walk/run arm swing cannot move attack hitboxes.
+
+### Debug Overlay
+
+`F4` now draws the runtime rig points in addition to the movement collision box:
+
+- foot and body center
+- head
+- right shoulder, right elbow, right hand
+- left shoulder, left elbow, left hand
+- hips, knees, and feet
+- weapon mount
+
+The overlay remains read-only and does not create, modify, or decide any collision, interaction, pickup, hitbox, or teleport behavior.
+
+## 2026-05-31 - Continuous player locomotion poses
+
+### Change
+
+The segmented player rig no longer relies on hard visual switching between two locomotion poses. The display loop now sends a normalized animation progress value into `PlayerRig`, and the rig solves joint positions every frame:
+
+- idle uses a subtle breathing cycle on body, head, and lowered hands
+- walk uses continuous arm swing, leg stride, and a small body bob
+- run uses the same cycle structure with larger stride, stronger arm swing, and a slightly larger bounce
+- right leg / left arm and left leg / right arm move in opposing pairs
+- weapon visual mount remains bound to the semantic right hand and follows the shoulder/arm/hand motion
+
+The walk full joint cycle remains `0.628s`, and the run full joint cycle remains `0.518s`.
+
+### Scope Guard
+
+This remains visual-only. Player movement speed, movement collision, map teleport, attack hitboxes, attack damage, bow projectile logic, magic, death, corruption, and save data are unchanged.

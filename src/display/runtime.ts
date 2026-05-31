@@ -4,6 +4,7 @@
 
 import type Phaser from 'phaser';
 import type { ActorState, PetState, WorldObjectState } from '../domain/types.ts';
+import type { PlayerRig } from './player-rig.ts';
 
 export type PhysicsArc = Phaser.GameObjects.Arc & {
   _hitTweenActive?: boolean;
@@ -34,6 +35,7 @@ interface DisplayState {
   pScene: Phaser.Scene | null;
   playerCircle: PhysicsArc | null;
   playerSprite: Phaser.GameObjects.Sprite | null;
+  playerRig: PlayerRig | null;
   weaponGfx: Phaser.GameObjects.Graphics | null;
   corruptionGfx: Phaser.GameObjects.Graphics | null;
   arrowGfx: Phaser.GameObjects.Graphics | null;
@@ -83,6 +85,7 @@ export const display: DisplayState = {
   // Persistent display GameObjects
   playerCircle: null,
   playerSprite: null,
+  playerRig: null,
   weaponGfx: null,
   corruptionGfx: null,
   arrowGfx: null,

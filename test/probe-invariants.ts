@@ -7,6 +7,7 @@
 // damage (or any other gameplay invariant breaks), this probe screams.
 
 import { chromium } from 'playwright';
+import { probeBaseUrl } from './probe-url.ts';
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 const errors = [];
@@ -20,7 +21,7 @@ page.on('console', m => {
   if (m.type() === 'warning' && t.startsWith('[invariant]')) violations.push(t);
 });
 
-await page.goto('http://localhost:5174/', { waitUntil: 'networkidle' });
+await page.goto(probeBaseUrl(), { waitUntil: 'networkidle' });
 await page.waitForTimeout(1500);
 await page.evaluate(() => document.querySelector('[data-menu-action="new"]')?.click());
 await page.waitForTimeout(300);

@@ -1,6 +1,7 @@
 // Comprehensive end-to-end probe. Drives every gameplay system from the
 // original game.js through the Phaser version and verifies state mutations.
 import { chromium } from 'playwright';
+import { probeBaseUrl } from './probe-url.ts';
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
@@ -34,7 +35,7 @@ async function step(label, fn) {
 }
 
 // ─── BOOT ──────────────────────────────────────────────────────────────
-await page.goto('http://localhost:5174/', { waitUntil: 'networkidle' });
+await page.goto(probeBaseUrl(), { waitUntil: 'networkidle' });
 await page.waitForTimeout(2000);
 
 await step('Boot + main menu visible', async () => {

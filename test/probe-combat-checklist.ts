@@ -5,6 +5,7 @@
 // Goal: every gameplay function must have a corresponding test that passes.
 
 import { chromium } from 'playwright';
+import { probeBaseUrl } from './probe-url.ts';
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
@@ -26,7 +27,7 @@ async function test(label, fn) {
   }
 }
 
-await page.goto('http://localhost:5174/', { waitUntil: 'networkidle' });
+await page.goto(probeBaseUrl(), { waitUntil: 'networkidle' });
 await page.waitForTimeout(1500);
 await page.evaluate(() => document.querySelector('[data-menu-action="new"]')?.click());
 await page.waitForTimeout(300);

@@ -2,12 +2,12 @@
 // end-to-end: boot, race choice, all 6 panels open + show content, combat
 // inputs fire, pause+resume, language switch, persistence round-trip.
 //
-// Usage: pnpm dev (port 5174 expected), then `node test/probe-comprehensive.mjs`
+// Usage: run dev server, then `PROBE_BASE_URL=http://server:5175/ npx tsx test/probe-comprehensive.ts`
 
 import { chromium } from 'playwright';
+import { probeBaseUrl } from './probe-url.ts';
 
-const PORT = process.env.PORT || 5174;
-const URL = `http://localhost:${PORT}/`;
+const URL = probeBaseUrl();
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
