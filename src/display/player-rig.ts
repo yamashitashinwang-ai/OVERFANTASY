@@ -206,6 +206,10 @@ function kneePoint(hip: RigPoint, foot: RigPoint, facing: RigPoint, side: RigPoi
   };
 }
 
+function smoothPositiveHalfWave(value: number) {
+  return value > 0 ? value * value : 0;
+}
+
 export function solvePlayerRigPose(
   facing: FacingDir,
   pose: PlayerRigPose = 'idle',
@@ -221,7 +225,8 @@ export function solvePlayerRigPose(
   const legWave = moving ? Math.sin(phase) : 0;
   const armWave = -legWave;
   const idleBreath = pose === 'idle' ? Math.sin(phase) : 0;
-  const bodyBob = moving ? -Math.abs(Math.sin(phase)) * (running ? 1.8 : 0.9) : idleBreath * -0.55;
+  const stepBounce = moving ? Math.sin(phase) ** 2 : 0;
+  const bodyBob = moving ? -stepBounce * (running ? 1.8 : 0.9) : idleBreath * -0.55;
   const stride = moving ? (running ? 6.2 : 3.8) : 0;
   const armStride = moving ? (running ? 6.1 : 3.7) : 0;
   const footLift = moving ? (running ? 1.8 : 0.9) : 0;
@@ -254,15 +259,16 @@ export function solvePlayerRigPose(
   const armBend = moving ? (running ? 3.9 : 3.1) : 2.7 + Math.max(0, idleBreath) * 0.25;
   const rightElbow = elbowPoint(rightShoulder, rightHand, body, rightSide, armBend);
   const leftElbow = elbowPoint(leftShoulder, leftHand, body, leftSide, armBend);
-  const hipY = body.y + 11;
-  const rightHip = { x: body.x + rightSide.x * 5.1, y: hipY + rightSide.y * 1.1 };
-  const leftHip = { x: body.x + leftSide.x * 5.1, y: hipY + leftSide.y * 1.1 };
+  const hipBody = moving || actionPose ? body : { x: base.body.x + hurtShift, y: base.body.y };
+  const hipY = hipBody.y + 11;
+  const rightHip = { x: hipBody.x + rightSide.x * 5.1, y: hipY + rightSide.y * 1.1 };
+  const leftHip = { x: hipBody.x + leftSide.x * 5.1, y: hipY + leftSide.y * 1.1 };
   const rightForward = legWave * stride;
   const leftForward = -legWave * stride;
   const rightFoot = add(add(foot, rightSide, 5), forward, rightForward * 0.58);
-  rightFoot.y += bodyLift - Math.max(0, legWave) * footLift;
+  rightFoot.y += moving ? -smoothPositiveHalfWave(legWave) * footLift : 0;
   const leftFoot = add(add(foot, leftSide, 5), forward, leftForward * 0.58);
-  leftFoot.y += bodyLift - Math.max(0, -legWave) * footLift;
+  leftFoot.y += moving ? -smoothPositiveHalfWave(-legWave) * footLift : 0;
   const kneeBend = running ? 4.2 : moving ? 3.1 : 2.4;
   const rightKnee = kneePoint(rightHip, rightFoot, forward, rightSide, kneeBend);
   const leftKnee = kneePoint(leftHip, leftFoot, forward, leftSide, kneeBend);

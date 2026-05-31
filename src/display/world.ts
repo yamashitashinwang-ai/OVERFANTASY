@@ -34,6 +34,86 @@ type FacingDir = 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'nw';
 let playerFacing: FacingDir = 's';
 let lastPlayerPixel = { x: 0, y: 0 };
 
+interface CameraScrollInput {
+  anchorX: number;
+  anchorY: number;
+  worldWidth: number;
+  worldHeight: number;
+  viewportWidth: number;
+  viewportHeight: number;
+  zoomX?: number;
+  zoomY?: number;
+}
+
+interface PlayerDisplayMotionInput {
+  deltaX: number;
+  deltaY: number;
+  velocityX?: number;
+  velocityY?: number;
+  running?: boolean;
+}
+
+export function computeCameraScrollForAnchor({
+  anchorX,
+  anchorY,
+  worldWidth,
+  worldHeight,
+  viewportWidth,
+  viewportHeight,
+  zoomX = 1,
+  zoomY = 1
+}: CameraScrollInput) {
+  const visibleWidth = viewportWidth / Math.max(0.001, Math.abs(zoomX));
+  const visibleHeight = viewportHeight / Math.max(0.001, Math.abs(zoomY));
+  const maxScrollX = Math.max(0, worldWidth - visibleWidth);
+  const maxScrollY = Math.max(0, worldHeight - visibleHeight);
+  return {
+    x: clamp(anchorX - visibleWidth / 2, 0, maxScrollX),
+    y: clamp(anchorY - visibleHeight / 2, 0, maxScrollY)
+  };
+}
+
+export function playerDisplayMotionFromKinematics({
+  deltaX,
+  deltaY,
+  velocityX = 0,
+  velocityY = 0,
+  running = false
+}: PlayerDisplayMotionInput) {
+  const velocityMoving = Math.hypot(velocityX, velocityY) > 1;
+  const deltaMoving = Math.hypot(deltaX, deltaY) > 0.35;
+  return {
+    moving: running || velocityMoving || deltaMoving,
+    facingDx: velocityMoving ? velocityX : deltaX,
+    facingDy: velocityMoving ? velocityY : deltaY
+  };
+}
+
+function playerBodyVelocity() {
+  const body = D.playerCircle?.body as { velocity?: { x?: number; y?: number } } | null | undefined;
+  return {
+    x: body?.velocity?.x ?? 0,
+    y: body?.velocity?.y ?? 0
+  };
+}
+
+function syncCameraToPlayerAnchor() {
+  if (!D.pScene || !D.playerCircle) return;
+  const camera = D.pScene.cameras.main;
+  const bounds = mapBounds();
+  const scroll = computeCameraScrollForAnchor({
+    anchorX: D.playerCircle.x,
+    anchorY: D.playerCircle.y,
+    worldWidth: bounds.w * tile,
+    worldHeight: bounds.h * tile,
+    viewportWidth: camera.width,
+    viewportHeight: camera.height,
+    zoomX: camera.zoomX,
+    zoomY: camera.zoomY
+  });
+  camera.setScroll(scroll.x, scroll.y);
+}
+
 function syncActivePointerAimWorld() {
   if (!D.pScene || !runtime.pointerInside) return;
   const pointer = D.pScene.input.activePointer;
@@ -101,6 +181,7 @@ export function rebuildDisplay() {
   D.activeLayer.setDepth(0);
 
   D.pScene.cameras.main.setBounds(0, 0, bounds.w * tile, bounds.h * tile);
+  D.pScene.cameras.main.stopFollow();
 
   if (!D.playerCircle) {
     D.playerCircle = D.pScene.add.arc(state.player.x * tile, state.player.y * tile, state.player.r, 0, 360, false, hexToInt('#f3c45b'));
@@ -121,7 +202,7 @@ export function rebuildDisplay() {
   resetBody(D.playerCircle.body, state.player.x * tile, state.player.y * tile);
   lastPlayerPixel = { x: state.player.x * tile, y: state.player.y * tile };
 
-  D.pScene.cameras.main.startFollow(D.playerCircle, true, 1, 1);
+  syncCameraToPlayerAnchor();
 
   // Build tilemap + buildings collision now that all groups & layer exist.
   rebuildPhysicsForMap();
@@ -138,8 +219,17 @@ export function syncPlayerDisplay() {
   D.playerCircle.setVisible(false);
   const dx = D.playerCircle.x - lastPlayerPixel.x;
   const dy = D.playerCircle.y - lastPlayerPixel.y;
-  const moving = Math.hypot(dx, dy) > 0.35 || p.running;
-  syncPlayerFacingFromAim(dx, dy);
+  const velocity = playerBodyVelocity();
+  const displayMotion = playerDisplayMotionFromKinematics({
+    deltaX: dx,
+    deltaY: dy,
+    velocityX: velocity.x,
+    velocityY: velocity.y,
+    running: p.running
+  });
+  const moving = displayMotion.moving;
+  syncCameraToPlayerAnchor();
+  syncPlayerFacingFromAim(displayMotion.facingDx, displayMotion.facingDy);
   const basePose: PlayerPose = moving ? playerLocomotionPose(state.time, p.running) : 'idle';
   const pose = currentPlayerPoseOverride() || basePose;
   const animationProgress = moving
