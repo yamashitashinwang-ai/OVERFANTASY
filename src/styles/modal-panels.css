@@ -1,0 +1,6 @@
+@import './modal-panels/base.css';
+@import './modal-panels/backpack.css';
+@import './modal-panels/quest.css';
+@import './modal-panels/trade.css';
+@import './modal-panels/forge.css';
+@import './modal-panels/magic.css';

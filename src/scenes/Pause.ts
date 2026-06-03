@@ -9,6 +9,7 @@
 
 import Phaser from 'phaser';
 import { bus, Events } from '../runtime/events.ts';
+import { restoreGameInputFocus } from '../runtime/input.ts';
 import { t } from '../domain/i18n.ts';
 
 const PAUSE_EL_ID = 'pauseMenu';
@@ -62,6 +63,7 @@ export class PauseScene extends Phaser.Scene {
   close() {
     this.el.classList.add('hidden');
     this.scene.resume('GameScene');
+    restoreGameInputFocus(this);
     bus.emit(Events.GAME_RESUMED);
     this.scene.stop();
   }

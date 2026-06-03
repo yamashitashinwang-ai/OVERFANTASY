@@ -30,7 +30,7 @@ const TRACKED_KEYS = [
 ] as const;
 
 type TrackedPlayerKey = typeof TRACKED_KEYS[number];
-let lastSnapshot: Partial<Record<TrackedPlayerKey, PlayerState[TrackedPlayerKey]>> = {};
+const lastSnapshot: Partial<Record<TrackedPlayerKey, PlayerState[TrackedPlayerKey]>> = {};
 
 /** Wire the registry to the active GameScene. Call once from create(). */
 export function seedRegistry(gameScene: Phaser.Scene, state: GameState) {

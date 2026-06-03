@@ -5,6 +5,8 @@ import type Phaser from 'phaser';
 import { display as D } from './runtime.ts';
 import { state } from '../runtime/state.ts';
 import { tile } from '../runtime/constants.ts';
+import { registerActorMover } from '../runtime/actor-movement.ts';
+import { registerActorTeleporter } from '../runtime/display-sync.ts';
 import { mapBounds } from '../domain/world.ts';
 import { clamp } from '../domain/math.ts';
 import type { ActorState } from '../domain/types.ts';
@@ -49,6 +51,8 @@ export function moveActor(actor: ActorState, dx: number, dy: number, speed: numb
   actor.y = clamp(ny, 0.5, bounds.h - 0.5);
 }
 
+registerActorMover(moveActor);
+
 export function syncStateFromBodies() {
   // Source of truth: physics bodies. Mirror their positions back into state.
   if (D.playerCircle?.body) {
@@ -92,6 +96,8 @@ export function teleportBody(actor: ActorState | null | undefined) {
     body.reset(actor.x * tile, actor.y * tile);
   }
 }
+
+registerActorTeleporter(teleportBody);
 
 export function attachCircleBody(arc: PhysicsArc, radius: number, dynamic = true) {
   if (!D.pScene || arc.body) return arc.body;

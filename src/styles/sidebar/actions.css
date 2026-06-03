@@ -1,0 +1,20 @@
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+button {
+  height: 38px;
+  border: 1px solid #3d4a56;
+  border-radius: 6px;
+  background: #26313c;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:hover { background: #303d49; }
+button:active { transform: translateY(1px); }

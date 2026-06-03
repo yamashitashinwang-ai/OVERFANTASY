@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  ensurePlaceholderArt,
   playerTextureKey,
   reservedPlayerAttackAnimationNames
 } from './placeholder-art.ts';
@@ -29,4 +30,34 @@ describe('placeholder player animation keys', () => {
       'cast_magic'
     ]);
   });
+
+  it('registers the generated placeholder texture families', () => {
+    const generated: string[] = [];
+    const gfx = new Proxy({}, {
+      get(_target, property) {
+        if (property === 'generateTexture') {
+          return (key: string) => {
+            generated.push(key);
+            return gfx;
+          };
+        }
+        return () => gfx;
+      }
+    });
+    const scene = {
+      textures: { exists: () => false },
+      make: { graphics: () => gfx }
+    };
+
+    ensurePlaceholderArt(scene as never);
+
+    expect(generated).toContain('of:player:human:s:idle');
+    expect(generated).toContain('of:player:monster:n:run1');
+    expect(generated).toContain('of:playerRig:human:forearm');
+    expect(generated).toContain('of:npc:elf');
+    expect(generated).toContain('of:monster:demonKnight');
+    expect(generated).toContain('of:pet:treant');
+    expect(generated).toContain('of:object:windFlag');
+  });
+
 });

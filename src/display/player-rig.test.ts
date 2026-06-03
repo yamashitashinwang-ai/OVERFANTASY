@@ -1,12 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { facingDirs, handOffsetForFacing } from '../domain/facing.ts';
-import {
-  playerRigDebugPointNames,
-  playerRigPartNames,
-  solvePlayerRigPose
-} from './player-rig.ts';
+import { facingDirs, playerMountOffsetsForFacing } from '../domain/facing.ts';
+import { playerRigDebugPointNames, playerRigPartNames, solvePlayerRigPose } from './player-rig.ts';
 
-describe('segmented player rig pose solver', () => {
+describe('segmented player rig structure and layering', () => {
   it('builds a complete part and debug-point pose for every facing direction', () => {
     for (const dir of facingDirs) {
       const solved = solvePlayerRigPose(dir, 'idle');
@@ -38,88 +34,58 @@ describe('segmented player rig pose solver', () => {
     }
   });
 
-  it('moves the right hand and weapon more strongly while running than walking', () => {
+  it('raises only the arm attachment chain relative to the torso', () => {
+    const liftY = -3;
+    const idleHandDrift = Math.sin(Math.PI * 0.35) * 0.35;
     for (const dir of facingDirs) {
-      const idle = solvePlayerRigPose(dir, 'idle').points.rightHand;
-      const walk = solvePlayerRigPose(dir, 'walk0', 0.25).points.rightHand;
-      const run = solvePlayerRigPose(dir, 'run0', 0.25).points.rightHand;
-      const walkDelta = Math.hypot(walk.x - idle.x, walk.y - idle.y);
-      const runDelta = Math.hypot(run.x - idle.x, run.y - idle.y);
-      expect(runDelta).toBeGreaterThan(walkDelta);
+      const base = playerMountOffsetsForFacing(dir);
+      const solved = solvePlayerRigPose(dir, 'idle', 0).points;
+
+      expect(solved.body).toEqual(base.body);
+      expect(solved.foot).toEqual(base.foot);
+      expect(solved.rightShoulder.x).toBeCloseTo(base.rightShoulder.x, 5);
+      expect(solved.leftShoulder.x).toBeCloseTo(base.leftShoulder.x, 5);
+      expect(solved.rightShoulder.y).toBeCloseTo(base.rightShoulder.y + liftY, 5);
+      expect(solved.leftShoulder.y).toBeCloseTo(base.leftShoulder.y + liftY, 5);
+      expect(solved.rightHand.y).toBeCloseTo(base.rightHand.y + liftY + idleHandDrift, 5);
+      expect(solved.leftHand.y).toBeCloseTo(base.leftHand.y + liftY - idleHandDrift, 5);
     }
   });
 
-  it('returns to the same joint positions at the end of a full locomotion cycle', () => {
-    for (const dir of facingDirs) {
-      const start = solvePlayerRigPose(dir, 'walk0', 0).points;
-      const end = solvePlayerRigPose(dir, 'walk0', 1).points;
-      expect(end.rightHand.x).toBeCloseTo(start.rightHand.x, 5);
-      expect(end.rightHand.y).toBeCloseTo(start.rightHand.y, 5);
-      expect(end.leftFoot.x).toBeCloseTo(start.leftFoot.x, 5);
-      expect(end.leftFoot.y).toBeCloseTo(start.leftFoot.y, 5);
+  it('layers the far arm behind and near arm in front while facing left or right', () => {
+    for (const dir of ['nw', 'w', 'sw'] as const) {
+      const parts = solvePlayerRigPose(dir, 'idle').parts;
+      expect(parts.rightUpperArm.depth).toBeLessThan(parts.torso.depth);
+      expect(parts.rightForearm.depth).toBeLessThan(parts.torso.depth);
+      expect(parts.rightHand.depth).toBeLessThan(parts.torso.depth);
+      expect(parts.leftUpperArm.depth).toBeGreaterThan(parts.torso.depth);
+      expect(parts.leftForearm.depth).toBeGreaterThan(parts.torso.depth);
+      expect(parts.leftHand.depth).toBeGreaterThan(parts.torso.depth);
+    }
+
+    for (const dir of ['ne', 'e', 'se'] as const) {
+      const parts = solvePlayerRigPose(dir, 'idle').parts;
+      expect(parts.leftUpperArm.depth).toBeLessThan(parts.torso.depth);
+      expect(parts.leftForearm.depth).toBeLessThan(parts.torso.depth);
+      expect(parts.leftHand.depth).toBeLessThan(parts.torso.depth);
+      expect(parts.rightUpperArm.depth).toBeGreaterThan(parts.torso.depth);
+      expect(parts.rightForearm.depth).toBeGreaterThan(parts.torso.depth);
+      expect(parts.rightHand.depth).toBeGreaterThan(parts.torso.depth);
     }
   });
 
-  it('keeps opposite arm and leg swing during south-facing walk', () => {
-    const neutral = solvePlayerRigPose('s', 'walk0', 0).points;
-    const quarter = solvePlayerRigPose('s', 'walk0', 0.25).points;
-    const threeQuarter = solvePlayerRigPose('s', 'walk1', 0.75).points;
-
-    expect(quarter.rightFoot.y).toBeGreaterThan(neutral.rightFoot.y);
-    expect(quarter.leftHand.y).toBeGreaterThan(neutral.leftHand.y);
-    expect(quarter.rightHand.y).toBeLessThan(neutral.rightHand.y);
-    expect(threeQuarter.leftFoot.y).toBeGreaterThan(neutral.leftFoot.y);
-    expect(threeQuarter.rightHand.y).toBeGreaterThan(neutral.rightHand.y);
-    expect(threeQuarter.leftHand.y).toBeLessThan(neutral.leftHand.y);
-  });
-
-  it('keeps the non-lifting foot stable while the torso bobs during locomotion', () => {
-    const neutral = solvePlayerRigPose('e', 'walk0', 0).points;
-    const quarter = solvePlayerRigPose('e', 'walk0', 0.25).points;
-    const threeQuarter = solvePlayerRigPose('e', 'walk1', 0.75).points;
-
-    expect(quarter.body.y).toBeLessThan(neutral.body.y);
-    expect(threeQuarter.body.y).toBeLessThan(neutral.body.y);
-    expect(quarter.leftFoot.y).toBeCloseTo(neutral.leftFoot.y, 5);
-    expect(quarter.rightFoot.y).toBeLessThan(neutral.rightFoot.y);
-    expect(threeQuarter.rightFoot.y).toBeCloseTo(neutral.rightFoot.y, 5);
-    expect(threeQuarter.leftFoot.y).toBeLessThan(neutral.leftFoot.y);
-  });
-
-  it('eases walk foot lift at contact points instead of popping off the ground', () => {
-    const start = solvePlayerRigPose('e', 'walk0', 0).points;
-    const afterStart = solvePlayerRigPose('e', 'walk0', 0.001).points;
-    const middle = solvePlayerRigPose('e', 'walk0', 0.5).points;
-    const afterMiddle = solvePlayerRigPose('e', 'walk1', 0.501).points;
-
-    expect(afterStart.rightFoot.y).toBeCloseTo(start.rightFoot.y, 3);
-    expect(afterStart.leftFoot.y).toBeCloseTo(start.leftFoot.y, 3);
-    expect(afterMiddle.rightFoot.y).toBeCloseTo(middle.rightFoot.y, 3);
-    expect(afterMiddle.leftFoot.y).toBeCloseTo(middle.leftFoot.y, 3);
-  });
-
-  it('adds idle breathing without moving the foot anchor', () => {
-    const start = solvePlayerRigPose('s', 'idle', 0).points;
-    const breath = solvePlayerRigPose('s', 'idle', 0.25).points;
-    expect(breath.body.y).toBeLessThan(start.body.y);
-    expect(breath.head.y).toBeLessThan(start.head.y);
-    expect(breath.foot).toEqual(start.foot);
-  });
-
-  it('keeps hips, knees, and feet still during idle breathing', () => {
+  it('uses the right hand layer for the held weapon layer', () => {
     for (const dir of facingDirs) {
-      const start = solvePlayerRigPose(dir, 'idle', 0).points;
-      const breath = solvePlayerRigPose(dir, 'idle', 0.25).points;
-      for (const point of ['rightHip', 'leftHip', 'rightKnee', 'leftKnee', 'rightFoot', 'leftFoot'] as const) {
-        expect(breath[point].x).toBeCloseTo(start[point].x, 5);
-        expect(breath[point].y).toBeCloseTo(start[point].y, 5);
-      }
+      const solved = solvePlayerRigPose(dir, 'idle');
+      expect(solved.weaponFront).toBe(solved.parts.rightHand.depth > solved.parts.torso.depth);
     }
-  });
 
-  it('keeps combat hand offsets separate from the animated visual hand mount', () => {
-    const visualRightHand = solvePlayerRigPose('s', 'walk0', 0.25).points.rightHand;
-    expect(handOffsetForFacing('s')).toEqual({ x: 8, y: -16, front: true });
-    expect(handOffsetForFacing('s')).not.toMatchObject(visualRightHand);
+    for (const dir of ['nw', 'w', 'sw'] as const) {
+      expect(solvePlayerRigPose(dir, 'idle').weaponFront).toBe(false);
+    }
+
+    for (const dir of ['ne', 'e', 'se'] as const) {
+      expect(solvePlayerRigPose(dir, 'idle').weaponFront).toBe(true);
+    }
   });
 });

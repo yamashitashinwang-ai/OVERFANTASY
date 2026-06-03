@@ -2,28 +2,17 @@
 // GameScene.create(). Each listener routes to domain services + ui re-renders.
 // No game logic lives in this file — it is purely dispatch.
 
-import { state } from '../runtime/state.ts';
 import { uiState } from '../runtime/ui-state.ts';
 import { htmlCache } from './cache.ts';
 import { get } from './dom.ts';
 import { equipGear, adoptPetFromMaterial } from '../domain/inventory.ts';
-import { buyPotion, buyArrows, forgeRing, forgeMaterial, forgeWeapon, sellMaterial } from '../domain/economy.ts';
+import { forgeMaterial, sellMaterial } from '../domain/economy.ts';
 import { isNearAction } from '../domain/npc.ts';
-import { learnMagicFromInput, beginMagicCast } from '../domain/magic.ts';
-import { acceptMajorQuest, settleMajorQuest, acceptSmallQuest, settleSmallQuest, activeSmallQuestFor } from '../domain/quest.ts';
-import { chatWithNpc } from '../domain/npc.ts';
 import { setLanguage } from '../domain/i18n.ts';
-import { renderBackpack, toggleBackpack, useBackpackItem, toggleBackpackGear } from './backpack.ts';
-import { closeShopPanel, refreshShopPanel } from './shop.ts';
-import { closeForgePanel, refreshForgePanel } from './forge.ts';
-import { closeMagicPanel, refreshMagicPanel } from './magic.ts';
-import { closeQuestPanel, renderQuestPanel } from './quest.ts';
 import { renderMainMenu } from './menus.ts';
 import { log, toast } from '../runtime/services.ts';
-import {
-  saveCurrentGame, startNewGame, continueLatestSave, startLoadedSave, deleteSaveSlot
-} from '../domain/game-flow.ts';
-import { blockWorldAction } from '../scenes/game-scene-helpers.ts';
+import { startNewGame, continueLatestSave, startLoadedSave, deleteSaveSlot } from '../domain/game-flow.ts';
+import { blockWorldAction } from '../runtime/input.ts';
 import type { GearSlot } from '../domain/types.ts';
 
 export function attachAllPanels() {

@@ -1,0 +1,10 @@
+@media (max-width: 980px) {
+  .shell {
+    grid-template-columns: 1fr;
+    width: min(960px, calc(100vw - 16px));
+    margin: 8px auto;
+  }
+
+  .panel { min-height: 0; }
+  .log { height: 180px; }
+}

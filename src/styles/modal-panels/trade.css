@@ -1,0 +1,35 @@
+.trade-list {
+  display: grid;
+  gap: 8px;
+}
+
+.trade-card,
+.trade-row {
+  padding: 10px;
+  background: #10151b;
+  border: 1px solid #2a3540;
+  border-radius: 6px;
+  color: #d6dee6;
+}
+
+.trade-card h3 {
+  margin: 0 0 6px;
+  color: #edf3f7;
+}
+
+.trade-card p {
+  margin: 0 0 8px;
+  line-height: 1.45;
+}
+
+.trade-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.trade-row button {
+  height: 30px;
+  padding: 0 10px;
+}

@@ -6,6 +6,7 @@ import { htmlCache } from './cache.ts';
 import { get } from './dom.ts';
 import { uiState } from '../runtime/ui-state.ts';
 import { runtime, flyingArrows, magicEffects } from '../runtime/state.ts';
+import { registerGameFlowUiHandlers } from '../runtime/game-flow-ui.ts';
 
 export function applyLanguage() {
   const option = languageOptions.find(item => item.id === currentLanguage()) || languageOptions[0];
@@ -71,3 +72,14 @@ export function resetRuntimeUi() {
   runtime.pendingMagicCast = null;
   magicEffects.length = 0;
 }
+
+registerGameFlowUiHandlers({
+  clearLogPanel() {
+    if (get.logEl) get.logEl.innerHTML = '';
+  },
+  clearToast() {
+    if (get.toastEl) get.toastEl.textContent = '';
+  },
+  resetRuntimeUi,
+  applyLanguage
+});

@@ -11,11 +11,14 @@ export const Events = {
   PLAYER_DEFEATED:    'player:defeated',
   PLAYER_STATS:       'player:stats',          // any stat changed (hp/mp/stam/gold)
   PLAYER_RACE_SET:    'player:race-set',
+  PLAYER_INTERACTED:  'player:interacted',
+  PLAYER_ATTACK_STARTED: 'player:attack-started',
 
   // Entities
   ENTITY_HIT:         'entity:hit',            // { entity, critical }
   ENTITY_DEFEATED:    'entity:defeated',       // { entity, byPet?, byPlayer? }
   ENTITY_SPAWN:       'entity:spawn',
+  ENTITY_INTERACTED:  'entity:interacted',     // { actor }
 
   // Pets
   PET_INJURED:        'pet:injured',
@@ -34,8 +37,10 @@ export const Events = {
   // Magic
   MAGIC_LEARNED:      'magic:learned',
   MAGIC_CLUE:         'magic:clue',
-  MAGIC_CAST_BEGIN:   'magic:cast-begin',
-  MAGIC_CAST_RESOLVE: 'magic:cast-resolve',
+  MAGIC_CAST_BEGIN:       'magic:cast-begin',
+  MAGIC_CAST_RESOLVE:     'magic:cast-resolve',
+  MAGIC_CAST_INTERRUPTED: 'magic:cast-interrupted',
+  MAGIC_EFFECT_SPAWNED:   'magic:effect-spawned',
 
   // Scene / world
   SCENE_LOADED:       'world:scene-loaded',    // { scene }

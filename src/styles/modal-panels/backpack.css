@@ -1,0 +1,74 @@
+.backpack-tabs {
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.backpack-tabs button,
+.backpack-close {
+  height: 30px;
+  padding: 0 10px;
+}
+
+.backpack-tabs .active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.backpack-body {
+  min-height: 300px;
+}
+
+.backpack-list,
+.backpack-detail {
+  padding: 10px;
+  background: #10151b;
+  border: 1px solid #2a3540;
+  border-radius: 6px;
+}
+
+.backpack-list {
+  flex: 0 0 280px;
+  display: grid;
+  align-content: start;
+  gap: 6px;
+}
+
+.backpack-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  height: auto;
+  min-height: 34px;
+  padding: 7px 9px;
+  text-align: left;
+  gap: 8px;
+}
+
+.backpack-item.active {
+  border-color: var(--accent);
+}
+
+.backpack-detail {
+  flex: 1;
+  color: #d6dee6;
+  line-height: 1.55;
+}
+
+.backpack-detail h2 {
+  margin: 0 0 8px;
+  color: #edf3f7;
+  font-size: 18px;
+}
+
+.backpack-detail p {
+  margin: 0 0 8px;
+}
+
+.backpack-actions {
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.backpack-actions button {
+  height: 32px;
+  padding: 0 12px;
+}

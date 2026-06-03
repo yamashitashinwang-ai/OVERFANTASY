@@ -1,92 +1,30 @@
-// HTML panel renderer. Subscribes to game state via domain/runtime services.
-// No engine GameObjects — just innerHTML.
+// Menu UI compatibility facade. Concrete renderers live under `ui/menus/`
+// by menu surface so the DOM rendering stays separate from scene orchestration.
 
-import { state } from '../runtime/state.ts';
-import { saveMeta } from '../domain/persistence.ts';
-import { uiState, isMenuOpen, isPaused } from '../runtime/ui-state.ts';
-import { resetRuntimeUi, applyLanguage } from './dom-chrome.ts';
-import DATA from '../data.ts';
-import { escapeHtml, formatNumber } from '../domain/math.ts';
-import { t, raceLabel, languageOptions, currentLanguage } from '../domain/i18n.ts';
-import { htmlCache } from './cache.ts';
-import { get } from './dom.ts';
-import { readSaveSlots, formatSaveTime, formatGameTime } from '../domain/persistence.ts';
-import type { SaveRecord } from '../domain/persistence.ts';
-import { playableRaces } from '../domain/combat/race.ts';
-import { log, toast } from '../runtime/services.ts';
-import { autoSave } from '../domain/game-flow.ts';
+import { registerGameFlowUiHandlers } from "../runtime/game-flow-ui.ts";
+import { htmlCache } from "./cache.ts";
+import { openMainMenu, renderMainMenu } from "./menus/main.ts";
 
-export function saveRowHtml(save: SaveRecord) {
-  const meta = save.meta || saveMeta(save.state);
-  const active = save.id === uiState.selectedSaveId ? " active" : "";
-  return `<button type="button" class="save-row${active}" data-menu-action="selectSave" data-save-id="${save.id}"><b>${escapeHtml(save.name || save.id)}</b><span>${formatSaveTime(save.savedAt)}　${escapeHtml(meta.scene)}　HP ${escapeHtml(meta.hp)}　${meta.gold}G　${formatGameTime(meta.time || 0)}</span></button>`;
-}
+export {
+  saveRowHtml,
+  selectedSaveActionsHtml,
+  renderLoadMenu
+} from "./menus/save-slots.ts";
+export {
+  renderHelpMenu,
+  renderLanguageMenu,
+  renderRaceMenu,
+  renderHomeMenu
+} from "./menus/views.ts";
+export {
+  renderMainMenu,
+  openMainMenu
+};
+export { renderPauseMenu } from "./menus/pause.ts";
 
-export function selectedSaveActionsHtml() {
-  const save = readSaveSlots().find(item => item.id === uiState.selectedSaveId);
-  if (!save) return "";
-  const confirm = uiState.pendingDeleteSaveId === save.id
-    ? `<div class="confirm-delete">${t("menu.confirmDelete")} ${escapeHtml(save.name)}？<div class="save-actions"><button type="button" data-menu-action="confirmDelete" data-save-id="${save.id}">${t("menu.confirmDelete")}</button><button type="button" data-menu-action="cancelDelete">${t("menu.cancel")}</button></div></div>`
-    : "";
-  return `<div class="save-actions"><button type="button" data-menu-action="loadSelected" data-save-id="${save.id}">${t("menu.start")}</button><button type="button" data-menu-action="askDelete" data-save-id="${save.id}">${t("menu.delete")}</button></div>${confirm}`;
-}
-
-export function renderLoadMenu() {
-  const saves = readSaveSlots().sort((a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime());
-  const list = saves.length ? saves.map(saveRowHtml).join("") : `<p class="menu-note">${t("menu.noSaves")}</p>`;
-  return `<div class="menu-card"><h2>${t("menu.load.title")}</h2><div class="save-list">${list}</div>${selectedSaveActionsHtml()}<div class="menu-actions"><button type="button" data-menu-action="main">${t("menu.back")}</button></div></div>`;
-}
-
-export function renderHelpMenu() {
-  return `<div class="menu-card"><h2>${t("menu.help.title")}</h2><p class="menu-note">${t("menu.help.text")}</p><div class="menu-actions"><button type="button" data-menu-action="main">${t("menu.back")}</button></div></div>`;
-}
-
-export function renderLanguageMenu() {
-  const buttons = languageOptions
-    .map(option => `<button type="button" data-menu-action="setLanguage" data-language="${option.id}" ${option.id === currentLanguage() ? "disabled" : ""}>${option.label}</button>`)
-    .join("");
-  const current = languageOptions.find(option => option.id === currentLanguage())?.label || "中文";
-  return `<div class="menu-card"><h2>${t("menu.language.title")}</h2><div class="menu-actions">${buttons}</div><p class="menu-note">${t("menu.currentLanguage")}：${current}</p><p class="menu-note">${t("menu.language.note")}</p><div class="menu-actions"><button type="button" data-menu-action="main">${t("menu.back")}</button></div></div>`;
-}
-
-export function renderMainMenu() {
-  if (!isMenuOpen()) return;
-  const saves = readSaveSlots();
-  const disabled = saves.length ? "" : "disabled";
-  let html = "";
-  if (uiState.menuView === "load") html = renderLoadMenu();
-  else if (uiState.menuView === "help") html = renderHelpMenu();
-  else if (uiState.menuView === "language") html = renderLanguageMenu();
-  else if (uiState.menuView === "race") {
-    html = `<div class="menu-card"><h2>${t("menu.race.title")}</h2><div class="menu-actions">${playableRaces.map(race => `<button type="button" data-menu-action="startRace" data-race="${race}">${raceLabel(race)}</button>`).join("")}</div><p class="menu-note">${t("menu.race.note")}</p><div class="menu-actions"><button type="button" data-menu-action="main">${t("menu.back")}</button></div></div>`;
-  }
-  else {
-    html = `<div class="menu-card"><h2>OVERFANTASY</h2><div class="menu-actions"><button type="button" data-menu-action="new">${t("menu.new")}</button><button type="button" data-menu-action="continue" ${disabled}>${t("menu.continue")}</button><button type="button" data-menu-action="load">${t("menu.load")}</button><button type="button" data-menu-action="language">${t("menu.language")}</button><button type="button" data-menu-action="help">${t("menu.help")}</button></div><p class="menu-note">${t("menu.main.note")}</p></div>`;
-  }
-  if (html !== htmlCache.menu) {
-    get.mainMenuEl.innerHTML = html;
-    htmlCache.menu = html;
-  }
-  get.mainMenuEl.classList.remove("hidden");
-  get.pauseMenuEl.classList.add("hidden");
-}
-
-export function openMainMenu() {
-  uiState.appMode = "menu";
-  uiState.currentSaveId = null;
-  resetRuntimeUi();
-  uiState.menuView = "main";
-  htmlCache.menu = "";
-  applyLanguage();
-  renderMainMenu();
-}
-
-export function renderPauseMenu() {
-  if (!isPaused()) return;
-  const html = `<div class="pause-card"><h2>${t("pause.title")}</h2><p class="menu-note">${t("pause.text")}</p><div class="pause-actions"><button type="button" data-pause-action="save">${t("pause.save")}</button><button type="button" data-pause-action="main">${t("pause.main")}</button></div></div>`;
-  if (html !== htmlCache.pause) {
-    get.pauseMenuEl.innerHTML = html;
-    htmlCache.pause = html;
-  }
-  get.pauseMenuEl.classList.remove("hidden");
-}
+registerGameFlowUiHandlers({
+  invalidateMenuCache() {
+    htmlCache.menu = '';
+  },
+  renderMainMenu
+});

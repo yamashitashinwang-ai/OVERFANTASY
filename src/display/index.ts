@@ -5,22 +5,26 @@
 import { display as D } from './runtime.ts';
 import type Phaser from 'phaser';
 import { W, H } from '../runtime/constants.ts';
-import { syncPlayerDisplay, syncEntityDisplay, syncObjectDisplay,
+import { registerDisplayRebuilder } from '../runtime/display-sync.ts';
+import { rebuildDisplay, syncPlayerDisplay, syncEntityDisplay, syncObjectDisplay,
          syncPickupDisplay, syncPetDisplay, syncPetRemainsDisplay,
-         syncHpBars, rebuildDisplay } from './world.ts';
+         syncHpBars } from './world.ts';
 import { syncWeaponDisplay, syncArrowsDisplay, syncEffectsDisplay } from './effects.ts';
 import { syncHudDisplay } from './hud.ts';
 import { initDebugHud, syncDebugHud } from './debug-hud.ts';
 import { initCollisionDebug, syncCollisionDebug } from './collision-debug.ts';
 import { initAnimationFeedback } from './animations.ts';
 import { ensurePlaceholderArt } from './placeholder-art.ts';
+import './particles.ts';
 
 // Re-export the public API so callers can import everything from one place.
-export { rebuildDisplay } from './world.ts';
+export { rebuildDisplay };
 export { moveActor, syncStateFromBodies, zeroAllVelocities,
          getActorBody, teleportBody, attachCircleBody,
          rebuildPhysicsForMap } from './physics.ts';
 export { hexToInt, brightenColorInt } from './colors.ts';
+
+registerDisplayRebuilder(rebuildDisplay);
 
 export function syncAllDisplay() {
   if (!D.pScene) return;

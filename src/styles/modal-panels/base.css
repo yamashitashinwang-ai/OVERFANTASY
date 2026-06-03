@@ -1,0 +1,58 @@
+.hidden {
+  display: none !important;
+}
+
+.backpack-panel,
+.quest-panel,
+.shop-panel,
+.forge-panel,
+.magic-panel {
+  position: fixed;
+  z-index: 20;
+  top: 26px;
+  left: 50%;
+  width: min(760px, calc(100vw - 42px));
+  max-height: calc(100vh - 52px);
+  transform: translateX(-50%);
+  overflow: auto;
+  padding: 14px;
+  background: #141a20;
+  border: 1px solid #3a4652;
+  border-radius: 8px;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.5);
+}
+
+.backpack-head,
+.backpack-tabs,
+.backpack-body,
+.backpack-actions,
+.quest-head,
+.quest-actions,
+.forge-slot-grid {
+  display: flex;
+  gap: 8px;
+}
+
+.backpack-head,
+.quest-head {
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.backpack-head strong,
+.quest-head strong {
+  color: var(--accent);
+  font-size: 18px;
+}
+
+.backpack-paused {
+  margin-right: auto;
+  padding: 4px 8px;
+  color: #f3c45b;
+  background: #251f14;
+  border: 1px solid #6b5830;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+}

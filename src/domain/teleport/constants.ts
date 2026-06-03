@@ -1,0 +1,1 @@
+export const TELEPORT_COOLDOWN_SECONDS = 1.2;

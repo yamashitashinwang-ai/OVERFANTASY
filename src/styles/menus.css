@@ -1,0 +1,81 @@
+.menu-panel,
+.pause-panel {
+  position: fixed;
+  z-index: 30;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(6, 8, 11, 0.74);
+}
+
+.menu-card,
+.pause-card {
+  width: min(720px, calc(100vw - 42px));
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  padding: 18px;
+  background: #141a20;
+  border: 1px solid #3a4652;
+  border-radius: 8px;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.5);
+}
+
+.menu-card h2,
+.pause-card h2 {
+  margin: 0 0 12px;
+  color: #edf3f7;
+}
+
+.menu-actions,
+.pause-actions,
+.save-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.menu-actions button,
+.pause-actions button,
+.save-actions button {
+  padding: 0 14px;
+}
+
+.save-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.save-row {
+  height: auto;
+  min-height: 52px;
+  padding: 9px 11px;
+  text-align: left;
+}
+
+.save-row.active {
+  border-color: var(--accent);
+}
+
+.save-row b,
+.save-row span {
+  display: block;
+}
+
+.save-row span,
+.menu-note {
+  color: #aeb8c2;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.confirm-delete {
+  margin-top: 10px;
+  padding: 10px;
+  background: #241719;
+  border: 1px solid #7b3d45;
+  border-radius: 6px;
+  color: #ffd4d9;
+}

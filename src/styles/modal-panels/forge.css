@@ -1,0 +1,11 @@
+.forge-slot-grid {
+  flex-direction: column;
+  margin-top: 10px;
+}
+
+.forge-slot-grid button {
+  height: auto;
+  min-height: 34px;
+  padding: 7px 10px;
+  text-align: left;
+}

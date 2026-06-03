@@ -1,0 +1,15 @@
+.magic-input {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.magic-input input {
+  height: 34px;
+  padding: 0 10px;
+  color: var(--ink);
+  background: #0f1318;
+  border: 1px solid #3a4652;
+  border-radius: 6px;
+}
