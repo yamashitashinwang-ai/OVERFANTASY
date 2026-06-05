@@ -1,11 +1,9 @@
 type GameFlowUiHandler = () => void;
 
 export interface GameFlowUiHandlers {
-  clearLogPanel: GameFlowUiHandler;
   clearToast: GameFlowUiHandler;
   resetRuntimeUi: GameFlowUiHandler;
   applyLanguage: GameFlowUiHandler;
-  renderGearPanel: GameFlowUiHandler;
   invalidateMenuCache: GameFlowUiHandler;
   renderMainMenu: GameFlowUiHandler;
 }
@@ -17,11 +15,9 @@ type GameFlowUiHandlerRegistration = Partial<{
 const noop: GameFlowUiHandler = () => undefined;
 
 const defaultHandlers: GameFlowUiHandlers = {
-  clearLogPanel: noop,
   clearToast: noop,
   resetRuntimeUi: noop,
   applyLanguage: noop,
-  renderGearPanel: noop,
   invalidateMenuCache: noop,
   renderMainMenu: noop
 };
@@ -41,10 +37,6 @@ export function resetGameFlowUiHandlers() {
   handlers = { ...defaultHandlers };
 }
 
-export function clearGameFlowLogPanel() {
-  handlers.clearLogPanel();
-}
-
 export function clearGameFlowToast() {
   handlers.clearToast();
 }
@@ -55,10 +47,6 @@ export function resetRuntimeUiForGameFlow() {
 
 export function applyGameFlowLanguage() {
   handlers.applyLanguage();
-}
-
-export function renderGameFlowGearPanel() {
-  handlers.renderGearPanel();
 }
 
 export function invalidateGameFlowMenuCache() {

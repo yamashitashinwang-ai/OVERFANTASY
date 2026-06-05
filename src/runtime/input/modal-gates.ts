@@ -4,7 +4,7 @@ import { uiState, isPaused, isPlaying } from '../ui-state.ts';
 // Gate DOM action buttons: any modal panel open or non-playing mode should
 // swallow the event so the world doesn't receive it.
 export function blockWorldAction(event: Event): boolean {
-  if (!uiState.backpackOpen && !uiState.questOpen && !uiState.shopOpen && !uiState.forgeOpen && !uiState.magicOpen && isPlaying() && !hasCorruptionControlLock()) return false;
+  if (!uiState.backpackOpen && !uiState.questOpen && !uiState.shopOpen && !uiState.forgeOpen && !uiState.magicOpen && !uiState.characterOpen && !uiState.careerOpen && isPlaying() && !hasCorruptionControlLock()) return false;
   event.preventDefault();
   return true;
 }
@@ -12,7 +12,8 @@ export function blockWorldAction(event: Event): boolean {
 export function worldPointerBlocked(): boolean {
   return !isPlaying() || hasCorruptionControlLock()
     || uiState.backpackOpen || uiState.questOpen || uiState.shopOpen
-    || uiState.forgeOpen || uiState.magicOpen;
+    || uiState.forgeOpen || uiState.magicOpen || uiState.characterOpen
+    || uiState.careerOpen;
 }
 
 export const modalKey = () =>
@@ -21,4 +22,6 @@ export const modalKey = () =>
   uiState.shopOpen ? 'shop' :
   uiState.forgeOpen ? 'forge' :
   uiState.magicOpen ? 'magic' :
+  uiState.characterOpen ? 'character' :
+  uiState.careerOpen ? 'career' :
   isPaused() ? 'pause' : null;

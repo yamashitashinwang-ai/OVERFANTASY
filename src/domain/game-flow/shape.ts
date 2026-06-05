@@ -10,6 +10,7 @@ import { isRemovedMapWeaponPickup } from '../world.ts';
 import { syncResourceTotals } from '../inventory.ts';
 import { normalizeCorruptionState } from '../corruption.ts';
 import { normalizeDeathState } from '../death.ts';
+import { ensureProficiencyState } from '../proficiency.ts';
 import type { GearSlot } from '../types.ts';
 
 export function ensureStateShape() {
@@ -48,6 +49,7 @@ export function ensureStateShape() {
   syncResourceTotals();
   if (!Array.isArray(state.player.magicKnown)) state.player.magicKnown = [];
   if (!state.player.magicClues || typeof state.player.magicClues !== 'object') state.player.magicClues = {};
+  ensureProficiencyState();
   if (!state.player.corruptionStageWarnings || typeof state.player.corruptionStageWarnings !== 'object') state.player.corruptionStageWarnings = {};
   state.player.corruption = clamp(Number(state.player.corruption || 0), 0, 100);
   state.player.corruptionHitCooldown = Math.max(0, Number(state.player.corruptionHitCooldown || 0));

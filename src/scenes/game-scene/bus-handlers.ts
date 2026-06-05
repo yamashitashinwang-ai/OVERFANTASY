@@ -4,8 +4,6 @@ import { bus, Events } from '../../runtime/events.ts';
 import { runtime } from '../../runtime/state.ts';
 import { uiState } from '../../runtime/ui-state.ts';
 import { applyLanguage, clearLanguageRenderCaches } from '../../ui/dom-chrome.ts';
-import { renderGearPanel } from '../../ui/gear.ts';
-import { renderStats } from '../../ui/stats.ts';
 import { closePauseMenu } from '../game-scene-helpers.ts';
 
 export function installGameSceneBusHandlers(scene: Phaser.Scene) {
@@ -13,8 +11,6 @@ export function installGameSceneBusHandlers(scene: Phaser.Scene) {
   const onLang = () => {
     applyLanguage();
     clearLanguageRenderCaches();
-    renderStats();
-    renderGearPanel();
   };
   const onResume = () => { closePauseMenu(); };
   const onPanelClose = (payload: { id?: string; action?: string } = {}) => {

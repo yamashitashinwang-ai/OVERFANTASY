@@ -1,6 +1,7 @@
 import { state } from '../../runtime/state.ts';
 import { log, toast } from '../../runtime/services.ts';
 import { clamp } from '../math.ts';
+import { tryAwardSurvivalProficiency } from '../proficiency.ts';
 import type { WorldObjectState } from '../types.ts';
 import { CORRUPTION_MAX, SHRINE_LOAD_DECAY_INTERVAL, SHRINE_LOAD_MAX } from './constants.ts';
 import { normalizeCorruptionState, shrineLoadKey } from './state.ts';
@@ -28,6 +29,7 @@ export function purifyAtShrine(obj: WorldObjectState): boolean {
   const transfer = Math.min(current, remaining);
   state.player.corruption = clamp(current - transfer, 0, CORRUPTION_MAX);
   state.shrineLoads[key] = clamp(load + transfer, 0, SHRINE_LOAD_MAX);
+  if (transfer > 0) tryAwardSurvivalProficiency();
   log(`${obj.name || '祠堂'}净化了${Math.floor(transfer)}点魔化值。当前祠堂负荷：${Math.floor(state.shrineLoads[key])}/${SHRINE_LOAD_MAX}。`);
   return true;
 }

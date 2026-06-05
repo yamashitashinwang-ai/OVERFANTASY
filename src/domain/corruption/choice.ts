@@ -6,6 +6,7 @@ import { log, toast } from '../../runtime/services.ts';
 import { clamp } from '../math.ts';
 import { loadScene } from '../dungeon.ts';
 import { refreshCombatStats } from '../combat/weapon.ts';
+import { tryAwardSurvivalProficiency } from '../proficiency.ts';
 import { CIVILIZED_REGIONS, CORRUPTION_MAX, RAMPAGE_WARNING_TIME } from './constants.ts';
 import { normalizeCorruptionState } from './state.ts';
 
@@ -87,6 +88,7 @@ export function useReversePotion(): boolean {
   normalizeCorruptionState();
   const p = state.player;
   if ((p.reversePotions || 0) <= 0) return false;
+  const before = p.corruption || 0;
   p.reversePotions -= 1;
   if (p.originalRace) p.race = p.originalRace;
   p.originalRace = null;
@@ -98,6 +100,7 @@ export function useReversePotion(): boolean {
   p.corruptionRampageAttackCooldown = 0;
   uiState.corruptionChoiceOpen = false;
   refreshCombatStats();
+  if ((p.corruption || 0) < before) tryAwardSurvivalProficiency();
   log('逆魔药灼烧血脉，魔物化被强行逆转，魔化值降到10。');
   return true;
 }

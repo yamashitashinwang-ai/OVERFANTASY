@@ -1,5 +1,6 @@
 import type { FlagBag, OwnedRecord, ResourceBag, SceneKey, Vector2 } from './common.ts';
 import type { GearMod, PlayerGear } from './catalog.ts';
+import type { ProficiencyState } from './proficiency.ts';
 
 export interface ActorState extends OwnedRecord, Vector2 {
   kind?: string;
@@ -70,6 +71,7 @@ export interface PlayerState extends ActorState {
   def: number;
   race: string;
   job: string;
+  proficiency: ProficiencyState;
   weapon: string;
   gear: PlayerGear;
   gearBag: string[];

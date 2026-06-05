@@ -10,13 +10,12 @@ import { spawnWorld } from '../world-spawn.ts';
 import { rebuildDisplayIfRegistered } from '../../runtime/display-sync.ts';
 import {
   applyGameFlowLanguage,
-  clearGameFlowLogPanel,
   clearGameFlowToast,
-  renderGameFlowGearPanel,
   resetRuntimeUiForGameFlow
 } from '../../runtime/game-flow-ui.ts';
 import { normalizeCorruptionState } from '../corruption.ts';
 import { normalizeDeathState } from '../death.ts';
+import { ensureProficiencyState } from '../proficiency.ts';
 
 const { regions } = DATA;
 
@@ -32,7 +31,6 @@ export function resetGameState(race = '人类') {
   applyRaceStartingLoadout(state.player.race);
   applyRaceInitialRegionRelations(state.player.race);
   logs.length = 0;
-  clearGameFlowLogPanel();
   clearGameFlowToast();
   resetRuntimeUiForGameFlow();
   const start = raceStartPoint(state.player.race);
@@ -42,8 +40,8 @@ export function resetGameState(race = '人类') {
   state.player.y = start.y;
   refreshCombatStats();
   rebuildDisplayIfRegistered();
-  renderGameFlowGearPanel();
   applyGameFlowLanguage();
+  ensureProficiencyState();
   normalizeCorruptionState();
   normalizeDeathState();
 }

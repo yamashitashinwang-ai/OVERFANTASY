@@ -7,9 +7,7 @@ import { openMagicPanel } from './magic.ts';
 function setupMagicPanelDom() {
   document.body.innerHTML = `
     <div id="magicPanel"></div>
-    <div id="stats"></div>
     <div id="toast"></div>
-    <div id="log"></div>
   `;
 }
 

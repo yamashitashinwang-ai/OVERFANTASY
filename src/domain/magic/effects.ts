@@ -2,6 +2,7 @@ import { bus, Events } from '../../runtime/events.ts';
 import { state, magicEffects } from '../../runtime/state.ts';
 import { applyRaceFinalAmount, raceDamageMultiplier } from '../combat/race.ts';
 import { markHitReaction, defeatEntity } from '../combat/damage.ts';
+import { awardMagicEffectiveProficiency, magicProficiencyDamageMultiplier } from '../proficiency.ts';
 import type { ActorState, MagicCatalogItem, MagicEffectState } from '../types.ts';
 import type { MagicSpell } from '../magic-input.ts';
 import { magicTargetFilter } from './targets.ts';
@@ -9,7 +10,7 @@ import { magicTargetFilter } from './targets.ts';
 export type SpellWithId = MagicCatalogItem & { id: string };
 
 export function damageByMagic(target: ActorState, amount: number, spell: Pick<MagicSpell, 'id'>): number {
-  const finalAmount = applyRaceFinalAmount(amount, raceDamageMultiplier("magic"));
+  const finalAmount = applyRaceFinalAmount(amount * magicProficiencyDamageMultiplier(), raceDamageMultiplier("magic"));
   target.hp -= finalAmount;
   target.playerAggro = (target.playerAggro || 0) + finalAmount + 10;
   markHitReaction(target, spell.id === "thunderFlash");
@@ -21,7 +22,7 @@ export function startMagicEffect(spell: SpellWithId, x: number, y: number, radiu
   const duration = spell.effectDuration || 0.8;
   const color = spell.color || "#d9d4ff";
   bus.emit(Events.MAGIC_EFFECT_SPAWNED, { spellId: spell.id, x, y, radius, color, duration });
-  magicEffects.push({
+  const effect: MagicEffectState = {
     spellId: spell.id,
     name: spell.name,
     kind: spell.kind,
@@ -34,13 +35,19 @@ export function startMagicEffect(spell: SpellWithId, x: number, y: number, radiu
     tickTimer: 0,
     damagePerSecond: spell.damagePerSecond || 0,
     slowPower: spell.slowPower || 0
-  });
+  };
+  magicEffects.push(effect);
+  return effect;
 }
 
 export function updateMagicZoneEffect(effect: MagicEffectState, dt: number) {
   if (effect.kind !== "zone") return;
   effect.tickTimer += dt;
   const targets = state.entities.filter(e => magicTargetFilter(e) && Math.hypot(e.x - effect.x, e.y - effect.y) <= effect.radius);
+  if (targets.length > 0 && !effect.proficiencyAwarded) {
+    effect.proficiencyAwarded = true;
+    awardMagicEffectiveProficiency();
+  }
   for (const e of targets) {
     e.slowTimer = Math.max(e.slowTimer || 0, 0.25);
     e.slowPower = Math.max(e.slowPower || 0, effect.slowPower || 0.2);

@@ -5,6 +5,7 @@ import { consumeAnyResource } from '../inventory.ts';
 import { autoSave } from '../../runtime/autosave.ts';
 import { log, toast } from '../../runtime/services.ts';
 import { isNearAction } from '../npc/spatial.ts';
+import { awardForgingProficiency, forgeSuccessBonusChance } from '../proficiency.ts';
 import type { GearSlot } from '../types.ts';
 import { consumeForgeIngredients, materialMod, weaponForgeRecipe } from './formulae.ts';
 
@@ -15,8 +16,9 @@ export function forgeRing() {
   if (state.player.wood < 1 || state.player.stone < 1) return toast("锻造需要木材和反重力石。");
   consumeAnyResource("wood", "木材", 1);
   consumeAnyResource("stone", "反重力石", 1);
-  if (Math.random() < 0.62) {
+  if (Math.random() < Math.min(0.95, 0.62 + forgeSuccessBonusChance())) {
     state.player.rings += 1;
+    awardForgingProficiency();
     log("锻造成功，得到一枚粗制戒指。 ");
   } else {
     log("锻造失败。不同种族的锻造概率以后会接入这里。 ");
@@ -55,6 +57,7 @@ export function forgeMaterial(name: string, targetSlot: GearSlot) {
   if (!state.player.gearMods[targetGearId]) state.player.gearMods[targetGearId] = [];
   state.player.gearMods[targetGearId].push(mod);
   refreshCombatStats();
+  awardForgingProficiency();
   log(`把${name}锻到了${gear.name}上。`);
   autoSave();
 }
@@ -67,6 +70,7 @@ export function forgeWeapon(gearId: string) {
   if (state.player.gearBag.includes(gearId)) return toast(`已经拥有${gear.name}。`);
   if (!consumeForgeIngredients(recipe.materials)) return toast("材料不足。");
   state.player.gearBag.push(gearId);
+  awardForgingProficiency();
   log(`锻造成功：${gear.name}。已放入装备栏。`);
   autoSave();
 }

@@ -5,6 +5,17 @@ import { restoreInjuredPets } from "../npc.ts";
 import { currentPlayerId } from "../session.ts";
 import { state } from "../../runtime/state.ts";
 import { log } from "../../runtime/services.ts";
+import { awardGatheringProficiency, gatheringExtraResourceChance, tryAwardSurvivalProficiency } from "../proficiency.ts";
+
+const gatheringPickupKinds = new Set(["herb", "material", "wood", "stone", "resource"]);
+
+function maybeAddGatheringExtra(kind: string, name: string) {
+  if (Math.random() >= gatheringExtraResourceChance()) return;
+  if (kind === "herb") state.player.herbs += 1;
+  if (kind === "material") addMaterial(name, 1);
+  if (kind === "wood" || kind === "stone" || kind === "resource") addResource(name, 1);
+  log(`采集熟练，额外获得了1个${name}。`);
+}
 
 export function pickupItems() {
   for (const p of state.pickups) {
@@ -37,8 +48,14 @@ export function pickupItems() {
         autoSave();
       }
       if (p.kind === "cleanse") {
+        const before = state.player.corruption || 0;
         state.player.corruption = Math.max(0, (state.player.corruption || 0) - 25);
+        if (state.player.corruption < before) tryAwardSurvivalProficiency();
         restoreInjuredPets();
+      }
+      if (gatheringPickupKinds.has(p.kind)) {
+        awardGatheringProficiency();
+        maybeAddGatheringExtra(p.kind, p.name);
       }
       log(p.kind === "arrow" ? "拾回了箭。" : `拾取了${p.name}。`);
     }

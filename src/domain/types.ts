@@ -5,6 +5,7 @@ export * from './types/world.ts';
 export * from './types/death.ts';
 export * from './types/quests.ts';
 export * from './types/session.ts';
+export * from './types/proficiency.ts';
 export * from './types/game-state.ts';
 export * from './types/combat.ts';
 export * from './types/runtime.ts';

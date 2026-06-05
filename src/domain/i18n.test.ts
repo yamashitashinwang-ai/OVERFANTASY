@@ -39,7 +39,7 @@ describe('i18n facade', () => {
 
     state.settings.language = 'en';
     expect(currentLanguage()).toBe('en');
-    expect(t('action.attack')).toBe('Attack');
+    expect(t('menu.new')).toBe('New Game');
     expect(raceLabel('人类')).toBe('Human');
     expect(t('missing.translation.key')).toBe('missing.translation.key');
   });

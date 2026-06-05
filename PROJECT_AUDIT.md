@@ -1,6 +1,6 @@
 # OVERFANTASY Project Audit
 
-Last updated: 2026-06-03
+Last updated: 2026-06-05
 
 This document is the current-state inventory for the game codebase. It is meant to
 separate the active source of truth from migration-era notes, generated output,
@@ -25,11 +25,12 @@ These generated and tool directories are already ignored by `.gitignore`.
 
 ## Current Git State
 
-The repository is on `main...origin/main`.
+The repository is on `codex/proficiency-mvp`.
 
 There are active uncommitted source and test changes. They should not be
 discarded during cleanup because they include recent player rig, input, magic,
-combat readability, and regression-test work.
+combat readability, proficiency MVP, character status panel, and regression-test
+work.
 
 Current changed areas:
 
@@ -1461,14 +1462,96 @@ Recommended low-risk order:
    `PROBE_BASE_URL=http://150.65.181.206:5175/ npm test` passes 11 runtime
    probe suites with 21 pass / 0 fail.
 
+153. Add profession/proficiency MVP. Done on 2026-06-04 on
+   `codex/proficiency-mvp`: added sword, dagger, spear, hammer, bow, magic,
+   forging, gathering, and survival proficiency records under
+   `state.player.proficiency`. Experience increases from actual effective
+   behavior: weapon hit/defeat, effective magic, completed forging, resource
+   gathering, survival recovery, fatigue relief, purification, and death
+   recovery. Empty attacks, invalid magic, failed forging, and non-resource
+   pickups do not grant proficiency. Levels run from 0 to 30, with 150 EXP for
+   level 1 and each later requirement floored after a 1.1 multiplier.
+   Proficiency bonuses remain light: weapon/magic damage +0.5% per level,
+   forging success +0.2% per level, gathering extra-resource chance +0.2% per
+   level, and survival recovery +0.2% per level. Class tendency is computed
+   from the highest proficiency progress and keeps the first actually reached
+   tendency on ties; it updates the existing `player.job` display for
+   compatibility. Save/load normalization fills defaults for old saves, and the
+   character status panel lists class tendency, each proficiency level/progress,
+   and each MVP bonus. This does not add a job tree, class skills, transfer
+   quests, class equipment locks, new maps, new bosses, new races, new weapons,
+   or new magic systems.
+
+154. Add character status panel MVP. Done on 2026-06-04 on
+   `codex/proficiency-mvp`: added a scene-owned `CharacterScene` and
+   `characterPanel` modal opened with P and closed with P or Esc. The panel
+   shows race, class tendency, subclass placeholder, area, gold, base HP/MP/
+   stamina and combat stats, movement/regeneration rates, visible active
+   effects, race bonus text, all nine proficiency levels/progress values, and
+   current weapon/equipment summaries. Hidden corruption value, monster-form
+   state, and death-fatigue layers are intentionally omitted. The world update
+   loop pauses while the panel is open, modal gates block combat/world actions,
+   and movement key state is preserved so held movement resumes after closing.
+   The persistent HUD was trimmed back to necessary quick-read stats instead of
+   showing every proficiency permanently. This does not add a job tree,
+   transfer quests, new proficiency types, new maps, new equipment systems, or
+   combat/proficiency/death/corruption/teleport logic changes.
+
+155. Remove the legacy sidebar UI. Done on 2026-06-04 on
+   `codex/proficiency-mvp`: removed the right-side `aside` from `index.html`
+   and deleted the old sidebar style modules, rolling log panel style, constant
+   stats DOM, legend, action buttons, equipment panel DOM, and world log DOM.
+   GameScene no longer attaches stats, gear, log, or old button handlers, and
+   game-flow UI adapters no longer refresh removed sidebar panels. The main
+   layout is now a single centered game frame with toast and modal panels. Old
+   side-button entries remain covered by existing keyboard/mouse inputs: E for
+   talk/use, left mouse for attack, right mouse for defense, Space for dodge, G
+   for gift, R for rest, B for backpack, F for magic, and P for character
+   status. Comprehensive probes now validate that the legacy sidebar is absent
+   and that character information is available through the P panel. Gameplay
+   systems and proficiency gain rules were not changed by this UI cleanup.
+
+156. Add manual first-class and subclass selection rules. Done on 2026-06-05
+   on `codex/proficiency-mvp`: added persistent career state under
+   `state.player.proficiency.career` with manual first-class selection,
+   manual subclass selection, and old-save default normalization to
+   "unselected". First-class candidates unlock when their matching proficiency
+   reaches Lv5 and are never auto-confirmed; the player can defer selection.
+   Once confirmed, the first class stays fixed and only gates which eight
+   subclass candidates are shown. The 36 unordered two-proficiency subclass
+   combinations are now cataloged by canonical IDs such as `sword+magic`, so
+   sword + magic and magic + sword resolve to the same 魔剑士. Subclasses unlock
+   when the chosen route proficiency and the paired proficiency satisfy one
+   side at Lv30 and the other at Lv5, with placeholder effect text because this
+   pass intentionally does not add class skills, a job tree, transfer quests,
+   second/third jobs, class storylines, new maps, new bosses, new weapons, or
+   new magic. Added a dedicated career modal reachable from the P character
+   panel. The P panel now has a separate career-info section for class
+   tendency, first class, subclass, and a persistent "职业选择" entry; the entry
+   is disabled with the hint "任意熟练度达到 5 级后可以选择职业。" until a
+   first-class candidate exists, then opens the unified career selection UI.
+   The career UI is split into first-class selection and second/subclass
+   selection areas: before first-class confirmation it only lists eligible Lv5
+   first-class candidates, after confirmation it shows the fixed first class and
+   the route's eight subclass candidates, and after subclass confirmation it
+   states that first-class/subclass free reselection is not available in this
+   version. Selection confirmations name the target class/subclass. Modal input
+   isolation was also tightened so clicks outside an open panel cannot leak
+   canvas pointer state into game actions. Validation: `npm run typecheck`,
+   `npm run test:unit` (86 files / 271 tests), `npm run lint`,
+   `npm run build`, career browser smoke test, and
+   `PROBE_BASE_URL=http://150.65.181.206:5176/ npm test` (11 suites /
+   26 pass / 0 fail) all pass; build still reports the existing Vite large
+   chunk warning.
+
 ## Immediate Red Flags
 
-- Current git status contains many modified files and several untracked source
-  files. Cleanup must avoid reverting user work.
+- Historical sections above include the 2026-06-03 cleanup audit state. Use
+  `git status` for the current branch state.
+- The current feature branch intentionally contains proficiency MVP, manual
+  career selection, character status panel, and legacy sidebar removal changes
+  until commit and push are completed.
 - Lint is currently clean. Keep future organization passes at 0 ESLint warnings
   unless a deliberate follow-up records new warning debt.
 - Some tests live near source as unit tests; some live in `test/` as browser
   probes. Both are intentional and serve different levels of coverage.
-- Git收束 is currently status-level only: the worktree still contains the large
-  organized change set and has not been staged, committed, or pushed in this
-  final audit pass.

@@ -47,6 +47,16 @@ export class ModalPanelScene extends Phaser.Scene {
     event.stopImmediatePropagation?.();
   }
 
+  protected absorbOutsidePointer(event: Event) {
+    this.clearPointerState();
+    const target = event.target;
+    const insidePanel = target instanceof Node && this.el.contains(target);
+    if (insidePanel || !['pointerdown', 'pointermove', 'pointerup', 'pointercancel', 'click'].includes(event.type)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation?.();
+  }
+
   create() {
     this.el = document.getElementById(this.panelId) as HTMLElement;
     if (this.openFlagName) uiState[this.openFlagName] = true;
@@ -55,7 +65,7 @@ export class ModalPanelScene extends Phaser.Scene {
     this.refresh();
 
     this.clearPointerState();
-    this._documentHandoff = () => this.clearPointerState();
+    this._documentHandoff = (event) => this.absorbOutsidePointer(event);
     for (const eventName of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel', 'click', 'focusin']) {
       document.addEventListener(eventName, this._documentHandoff, true);
     }

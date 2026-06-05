@@ -11,7 +11,7 @@ const { materialCatalog } = DATA;
 export function refreshShopPanel() {
   htmlCache.shop = "";
   renderShopPanel();
-  // stats + gear sidebars are push-driven; no direct call needed here.
+  // The shop modal owns its own HTML; shared state refreshes through events.
 }
 
 export function renderShopPanel() {

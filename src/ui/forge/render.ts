@@ -20,8 +20,7 @@ import {
 export function refreshForgePanel() {
   htmlCache.forge = "";
   renderForgePanel();
-  // stats + gear sidebars are push-driven (subscribe to PLAYER_STATS /
-  // GEAR_EQUIPPED / INVENTORY_CHANGED) — no direct call needed here.
+  // The forge modal owns its own HTML; shared state refreshes through events.
 }
 
 export function renderWeaponForgePanel() {

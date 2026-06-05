@@ -13,9 +13,7 @@ import { refreshCombatStats } from '../combat/weapon.ts';
 import { rebuildDisplayIfRegistered } from '../../runtime/display-sync.ts';
 import {
   applyGameFlowLanguage,
-  clearGameFlowLogPanel,
   invalidateGameFlowMenuCache,
-  renderGameFlowGearPanel,
   renderGameFlowMainMenu,
   resetRuntimeUiForGameFlow
 } from '../../runtime/game-flow-ui.ts';
@@ -48,13 +46,11 @@ export function startLoadedSave(saveId: string) {
   uiState.currentSaveId = save.id;
   syncLostPackagePickupsForScene(state.scene);
   logs.length = 0;
-  clearGameFlowLogPanel();
   resetRuntimeUiForGameFlow();
   uiState.appMode = 'playing';
   applyGameFlowLanguage();
   refreshCombatStats();
   rebuildDisplayIfRegistered();
-  renderGameFlowGearPanel();
   log(`读取了${save.name}。`);
   bus.emit(Events.GAME_LOADED, { saveId });
   resumeCorruptionStateAfterLoad();

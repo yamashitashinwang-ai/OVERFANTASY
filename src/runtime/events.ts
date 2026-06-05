@@ -14,6 +14,11 @@ export const Events = {
   PLAYER_INTERACTED:  'player:interacted',
   PLAYER_ATTACK_STARTED: 'player:attack-started',
 
+  // Proficiency
+  PROFICIENCY_CHANGED:  'proficiency:changed',
+  PROFICIENCY_LEVEL_UP: 'proficiency:level-up',
+  CAREER_CHANGED:       'career:changed',
+
   // Entities
   ENTITY_HIT:         'entity:hit',            // { entity, critical }
   ENTITY_DEFEATED:    'entity:defeated',       // { entity, byPet?, byPlayer? }

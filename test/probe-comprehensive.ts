@@ -1,6 +1,6 @@
 // Comprehensive functional probe. Verifies major user-facing systems end-to-end:
 // boot, race choice, panel opening, combat inputs, movement, pause/resume,
-// reactive stats, and persistence round-trip.
+// character status panel, and persistence round-trip.
 //
 // Usage: run dev server, then `PROBE_BASE_URL=http://server:5175/ npx tsx test/probe-comprehensive.ts`
 

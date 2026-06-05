@@ -12,6 +12,12 @@ import { publishPlayerAttackStarted } from "../visual-events.ts";
 import { raceDamageMultiplier, applyRaceFinalAmount } from "../race.ts";
 import { markHitReaction, defeatEntity } from "../damage.ts";
 import {
+  awardWeaponDefeatProficiency,
+  awardWeaponHitProficiency,
+  proficiencyForWeapon,
+  weaponProficiencyDamageMultiplier
+} from "../../proficiency.ts";
+import {
   nearestAttackShapeTarget, attackSpecForWeapon, attackEntityFilter,
   startAttackEffect, bodyGap
 } from "../targeting.ts";
@@ -65,7 +71,8 @@ export function playerAttack() {
   const closeBonus = (weapon.type === "匕首" || weapon.type.includes("剑")) && bodyGap(state.player, target) <= 0.05 ? 1.3 : 1;
   const cooldownCut = rushedAttack ? 0.4 : 1;
   const critical = Math.random() < 0.05;
-  const baseDmg = Math.ceil((state.player.atk + Math.floor(Math.random() * variance)) * guardCut * closeBonus * cooldownCut * (critical ? 1.2 : 1));
+  const proficiencyId = proficiencyForWeapon(weapon);
+  const baseDmg = Math.ceil((state.player.atk + Math.floor(Math.random() * variance)) * guardCut * closeBonus * cooldownCut * (critical ? 1.2 : 1) * weaponProficiencyDamageMultiplier(weapon));
   const dmg = applyRaceFinalAmount(baseDmg, raceDamageMultiplier("weapon", weapon));
   const tgtHpBefore = target.hp;
   target.hp -= dmg;
@@ -75,6 +82,7 @@ export function playerAttack() {
   getAttackEffect().hit = true;
   getAttackEffect().critical = critical;
   markHitReaction(target, critical);
+  awardWeaponHitProficiency(proficiencyId, target);
   if (critical) setHitStopTimer(Math.max(getHitStopTimer(), 0.08));
   const weaponMods = gearModList(state.player.gear.weapon);
   const slowMod = weaponMods.reduce<GearMod>((best, mod) => (mod.slowOnHit || 0) > (best.slowOnHit || 0) ? mod : best, {});
@@ -98,5 +106,8 @@ export function playerAttack() {
     if (affected > 0) log(`凝胶爆弹扩散，周围${affected}个生物被减速。`);
   }
   log(`${weapon.type}攻击${target.name}，造成${dmg}点伤害${critical ? "，暴击" : ""}${rushedAttack ? "，攻击间隔未到只发挥四成威力" : ""}${closeBonus > 1 ? "，贴身命中要害" : ""}${target.guard && weapon.type !== "锤" ? "，但它的防御抵消了一部分" : ""}。`);
-  if (target.hp <= 0) defeatEntity(target);
+  if (target.hp <= 0) {
+    awardWeaponDefeatProficiency(proficiencyId, target);
+    defeatEntity(target);
+  }
 }

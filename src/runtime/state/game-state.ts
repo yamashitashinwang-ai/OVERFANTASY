@@ -6,6 +6,7 @@ import {
   defaultSessionState
 } from '../../domain/session.ts';
 import { readLanguageSetting } from '../../domain/i18n/storage.ts';
+import { createDefaultProficiencyState } from '../../domain/proficiency/defaults.ts';
 
 const { regions: defaultRegions } = DATA;
 
@@ -55,6 +56,7 @@ export const state: GameState = {
     def: 0,
     race: '人类',
     job: '剑士',
+    proficiency: createDefaultProficiencyState(),
     weapon: '练习剑',
     gear: {
       weapon: 'trainingSword',

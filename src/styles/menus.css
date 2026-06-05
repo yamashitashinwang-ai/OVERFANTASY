@@ -1,6 +1,6 @@
 .menu-panel,
 .pause-panel {
-  position: fixed;
+  position: absolute;
   z-index: 30;
   inset: 0;
   display: grid;
@@ -11,8 +11,8 @@
 
 .menu-card,
 .pause-card {
-  width: min(720px, calc(100vw - 42px));
-  max-height: calc(100vh - 48px);
+  width: min(720px, calc(100% - 42px));
+  max-height: calc(100% - 48px);
   overflow: auto;
   padding: 18px;
   background: #141a20;

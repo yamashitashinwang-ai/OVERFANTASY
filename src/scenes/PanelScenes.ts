@@ -7,3 +7,5 @@ export { QuestScene } from './panels/QuestScene.ts';
 export { ShopScene } from './panels/ShopScene.ts';
 export { ForgeScene } from './panels/ForgeScene.ts';
 export { MagicScene } from './panels/MagicScene.ts';
+export { CharacterScene } from './panels/CharacterScene.ts';
+export { CareerScene } from './panels/CareerScene.ts';

@@ -26,6 +26,8 @@ export class MenuScene extends Phaser.Scene {
     get.shopPanelEl.classList.add('hidden');
     get.forgePanelEl.classList.add('hidden');
     get.magicPanelEl.classList.add('hidden');
+    get.characterPanelEl.classList.add('hidden');
+    get.careerPanelEl.classList.add('hidden');
     get.pauseMenuEl.classList.add('hidden');
 
     uiState.appMode = 'menu';

@@ -12,8 +12,7 @@ const { magicCatalog } = DATA;
 export function refreshMagicPanel() {
   htmlCache.magic = "";
   renderMagicPanel();
-  // stats panel is push-driven (subscribes to PLAYER_STATS / MP changes via
-  // syncRegistry); no direct call needed here.
+  // The magic modal owns its own HTML; shared state refreshes through events.
 }
 
 export function renderMagicPanel() {

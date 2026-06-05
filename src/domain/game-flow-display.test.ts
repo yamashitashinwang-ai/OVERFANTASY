@@ -11,16 +11,15 @@ import { startLoadedSave } from './game-flow/session.ts';
 
 function setupDom() {
   document.body.innerHTML = `
-    <div id="gearPanel"></div>
     <div id="backpackPanel"></div>
     <div id="questPanel"></div>
     <div id="shopPanel"></div>
     <div id="forgePanel"></div>
     <div id="magicPanel"></div>
+    <div id="characterPanel"></div>
     <div id="mainMenu"></div>
     <div id="pauseMenu"></div>
     <div id="toast"></div>
-    <div id="log"></div>
   `;
 }
 

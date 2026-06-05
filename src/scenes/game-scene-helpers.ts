@@ -6,5 +6,4 @@ export { livingCount, updateWorld, installWorldTimers } from './game-scene-helpe
 export { openPauseMenu, closePauseMenu } from './game-scene-helpers/pause.ts';
 export { blockWorldAction } from './game-scene-helpers/modal-gates.ts';
 export { installPointerInputs } from './game-scene-helpers/pointer.ts';
-export { installButtonHandlers } from './game-scene-helpers/buttons.ts';
 export { installKeyBindings } from './game-scene-helpers/keyboard.ts';

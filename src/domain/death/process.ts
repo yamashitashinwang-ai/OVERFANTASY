@@ -6,6 +6,7 @@ import { loadScene } from '../dungeon.ts';
 import { raceStartPoint } from '../combat/race.ts';
 import { addCorruptionFromMonsterDeath, isMonsterSource } from '../corruption.ts';
 import { createLostPackage, hasLostPackageContents, syncLostPackagePickupsForScene } from '../lost-packages.ts';
+import { awardDeathSurvivalProficiency } from '../proficiency.ts';
 import { applyDeathFatigueStats, FATIGUE_MAX, normalizeDeathState } from './fatigue.ts';
 import { inventorySnapshot, rollDeathInventoryLoss } from './inventory-loss.ts';
 import { safePackagePosition } from './package-position.ts';
@@ -50,6 +51,7 @@ export function processPlayerDeath(source: ActorState | null | undefined) {
   const safePackage = safePackagePosition(deathX, deathY);
   const pkg = createLostPackage(safePackage.scene, safePackage.x, safePackage.y, packageContents, deathScene, deathX, deathY);
   state.player.deathFatigue = clamp((state.player.deathFatigue || 0) + 1, 0, FATIGUE_MAX);
+  awardDeathSurvivalProficiency();
   applyDeathFatigueStats();
   const respawn = respawnForPlayer();
   state.lastDeath = {

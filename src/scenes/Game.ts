@@ -11,13 +11,10 @@ import { runtime, state } from '../runtime/state.ts';
 import { installPlayerCooldowns } from '../runtime/player-cooldowns.ts';
 import { uiState } from '../runtime/ui-state.ts';
 import { applyLanguage } from '../ui/dom-chrome.ts';
-import { attachGearPanel } from '../ui/gear.ts';
-import { attachLogPanel } from '../ui/log.ts';
-import { attachStatsPanel } from '../ui/stats.ts';
 import { attachToastPanel } from '../ui/toast.ts';
 import { attachAllPanels } from '../ui/wire.ts';
 import {
-  installButtonHandlers, installKeyBindings, installPointerInputs, installWorldTimers
+  installKeyBindings, installPointerInputs, installWorldTimers
 } from './game-scene-helpers.ts';
 import { installGameSceneBusHandlers } from './game-scene/bus-handlers.ts';
 import { installGameSceneDevtools } from './game-scene/devtools.ts';
@@ -70,7 +67,6 @@ export {
   playerRepelsMonsters
 } from '../ui/panels-helpers.ts';
 export { closeQuestPanel } from '../ui/quest.ts';
-export { renderStats } from '../ui/stats.ts';
 export {
   playerAimAngle, normalizeWithAim, livingCount,
   updateWorld, installWorldTimers, openPauseMenu, closePauseMenu,
@@ -90,16 +86,12 @@ export class GameScene extends Phaser.Scene {
     installPlayerCooldowns(state.player);
     installGameSceneDevtools(this);
 
-    attachLogPanel();
     attachToastPanel();
-    attachStatsPanel();
-    attachGearPanel();
 
     installWorldTimers(this);
     installGameSceneBusHandlers(this);
 
     installPointerInputs(this);
-    installButtonHandlers();
     attachAllPanels();
     installKeyBindings(this);
 

@@ -30,6 +30,7 @@ export function installGameSceneDevtools(scene: Phaser.Scene) {
     import('../../domain/combat/weapon.ts'),
     import('../../domain/combat/targeting.ts'),
     import('../../domain/player.ts'),
+    import('../../domain/proficiency.ts'),
     import('../../domain/corruption.ts'),
     import('../../domain/world.ts'),
     import('../../domain/world-spawn.ts'),

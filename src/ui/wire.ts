@@ -5,38 +5,13 @@
 import { uiState } from '../runtime/ui-state.ts';
 import { htmlCache } from './cache.ts';
 import { get } from './dom.ts';
-import { equipGear, adoptPetFromMaterial } from '../domain/inventory.ts';
-import { forgeMaterial, sellMaterial } from '../domain/economy.ts';
-import { isNearAction } from '../domain/npc.ts';
 import { setLanguage } from '../domain/i18n.ts';
 import { renderMainMenu } from './menus.ts';
-import { log, toast } from '../runtime/services.ts';
 import { startNewGame, continueLatestSave, startLoadedSave, deleteSaveSlot } from '../domain/game-flow.ts';
-import { blockWorldAction } from '../runtime/input.ts';
-import type { GearSlot } from '../domain/types.ts';
 
 export function attachAllPanels() {
-  get.gearPanelEl.addEventListener('click', (event: MouseEvent) => {
-    if (blockWorldAction(event)) return;
-    const target = event.target as HTMLElement | null;
-    const button = target?.closest<HTMLButtonElement>('button[data-gear]');
-    const materialButton = target?.closest<HTMLButtonElement>('button[data-material]');
-    if (button) { equipGear(button.dataset.gear); return; }
-    if (!materialButton) return;
-    const name = materialButton.dataset.material;
-    const action = materialButton.dataset.action;
-    if (action === 'sell') {
-      if (!isNearAction('shop')) { toast('需要靠近商店才能出售素材。'); return; }
-      const gold = sellMaterial(name, 1);
-      if (gold > 0) log(`卖出${name}，获得${gold}G。`);
-    }
-    if (action === 'forge') forgeMaterial(name, materialButton.dataset.slot as GearSlot);
-    if (action === 'adoptPet') adoptPetFromMaterial(name);
-  });
-
-  // Backpack/Quest/Shop/Forge/Magic click handlers now live in their dedicated
-  // Phaser scenes — see scenes/PanelScenes.js. wire.js retains only the gear
-  // sidebar (HTML-only) and the main menu.
+  // Backpack/Quest/Shop/Forge/Magic/Character click handlers live in their
+  // dedicated Phaser scenes. This legacy wire keeps only the main menu.
 
   get.mainMenuEl.addEventListener('click', (event: MouseEvent) => {
     const target = event.target as HTMLElement | null;

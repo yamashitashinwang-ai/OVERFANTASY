@@ -3,6 +3,7 @@ import { log } from '../../runtime/services.ts';
 import { clamp } from '../math.ts';
 import { refreshCombatStats } from '../combat/weapon.ts';
 import { normalizeLostPackages } from '../lost-packages.ts';
+import { tryAwardSurvivalProficiency } from '../proficiency.ts';
 
 export const FATIGUE_MAX = 3;
 export const FATIGUE_RELIEF_INTERVAL = 300;
@@ -53,6 +54,7 @@ export function relieveDeathFatigue(method: 'rest' | 'shrine'): boolean {
   state.player.deathFatigue = Math.max(0, state.player.deathFatigue - 1);
   state.player.deathFatigueReliefCooldown = FATIGUE_RELIEF_INTERVAL;
   applyDeathFatigueStats();
+  tryAwardSurvivalProficiency();
   log(method === 'rest' ? '休息驱散了一层死亡疲劳。' : '祠堂净化驱散了一层死亡疲劳。');
   return true;
 }

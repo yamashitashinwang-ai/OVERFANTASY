@@ -17,9 +17,22 @@ export async function runPausePhase(probe: ComprehensiveProbe): Promise<void> {
 }
 
 export async function runStatsPhase(probe: ComprehensiveProbe): Promise<void> {
-  console.log('\n[7] Stats reactive update');
-  await probe.page.evaluate(() => document.getElementById('stats').innerHTML);
-  await probe.page.waitForTimeout(800);
-  await probe.page.evaluate(() => document.getElementById('stats').innerHTML);
-  probe.tally(probe.expect('stats render: no errors', probe.flushErrors() === 0));
+  console.log('\n[7] Character status panel');
+  await probe.page.keyboard.press('KeyP');
+  await probe.page.waitForTimeout(400);
+  const panelInfo = await probe.page.evaluate(() => {
+    const el = document.getElementById('characterPanel');
+    return {
+      open: !!el && !el.classList.contains('hidden'),
+      text: el?.innerText || ''
+    };
+  });
+  probe.tally(probe.expect('character panel visible', panelInfo.open));
+  probe.tally(probe.expect('character panel shows race and proficiency', /人类/.test(panelInfo.text) && /熟练度/.test(panelInfo.text)));
+  probe.tally(probe.expect('character panel shows locked career entry before Lv5', /职业信息/.test(panelInfo.text) && /职业选择/.test(panelInfo.text) && /任意熟练度达到 5 级后可以选择职业/.test(panelInfo.text)));
+  await probe.page.keyboard.press('KeyP');
+  await probe.page.waitForTimeout(300);
+  const panelHidden = await probe.page.evaluate(() => document.getElementById('characterPanel')?.classList.contains('hidden'));
+  probe.tally(probe.expect('character panel hidden on second P', !!panelHidden));
+  probe.tally(probe.expect('character panel cycle: no errors', probe.flushErrors() === 0));
 }

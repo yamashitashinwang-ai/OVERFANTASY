@@ -10,6 +10,8 @@ import { closeShopPanel } from '../../ui/shop.ts';
 import { closeForgePanel } from '../../ui/forge.ts';
 import { openMagicPanel, closeMagicPanel, refreshMagicPanel } from '../../ui/magic.ts';
 import { openCurrentQuestPanel, closeQuestPanel } from '../../ui/quest.ts';
+import { openCharacterPanel, closeCharacterPanel } from '../../ui/character.ts';
+import { closeCareerPanel } from '../../ui/career.ts';
 import { renderMainMenu } from '../../ui/menus.ts';
 import { htmlCache } from '../../ui/cache.ts';
 import { get } from '../../ui/dom.ts';
@@ -24,13 +26,16 @@ export function installKeyBindings(scene: Phaser.Scene) {
     shop:     () => closeShopPanel(),
     forge:    () => closeForgePanel(),
     magic:    () => closeMagicPanel(),
+    character: () => closeCharacterPanel(),
+    career:   () => closeCareerPanel(),
     pause:    () => closePauseMenu()
   };
 
   bindActions(scene, {
-    'B':   () => { if (isPlaying() && !hasCorruptionControlLock() && !uiState.questOpen && !uiState.shopOpen && !uiState.forgeOpen && !uiState.magicOpen) toggleBackpack(); },
-    'J':   () => { if (isPlaying() && !hasCorruptionControlLock() && !uiState.backpackOpen && !uiState.shopOpen && !uiState.forgeOpen && !uiState.magicOpen) openCurrentQuestPanel(); },
-    'F':   () => { if (isPlaying() && !hasCorruptionControlLock() && !uiState.backpackOpen && !uiState.questOpen && !uiState.shopOpen && !uiState.forgeOpen && !uiState.magicOpen) openMagicPanel('book'); },
+    'B':   () => { if (isPlaying() && !hasCorruptionControlLock() && !uiState.questOpen && !uiState.shopOpen && !uiState.forgeOpen && !uiState.magicOpen && !uiState.characterOpen && !uiState.careerOpen) toggleBackpack(); },
+    'J':   () => { if (isPlaying() && !hasCorruptionControlLock() && !uiState.backpackOpen && !uiState.shopOpen && !uiState.forgeOpen && !uiState.magicOpen && !uiState.characterOpen && !uiState.careerOpen) openCurrentQuestPanel(); },
+    'F':   () => { if (isPlaying() && !hasCorruptionControlLock() && !uiState.backpackOpen && !uiState.questOpen && !uiState.shopOpen && !uiState.forgeOpen && !uiState.magicOpen && !uiState.characterOpen && !uiState.careerOpen) openMagicPanel('book'); },
+    'P':   () => { if (isPlaying() && !hasCorruptionControlLock() && !modalKey()) openCharacterPanel(); },
     'E':   () => { if (isPlaying() && !hasCorruptionControlLock() && !modalKey()) { if (!handlePetRescue() && !helpWounded()) talkOrUse(); } },
     'G':   () => { if (isPlaying() && !hasCorruptionControlLock() && !modalKey()) gift(); },
     'R':   () => { if (isPlaying() && !hasCorruptionControlLock() && !modalKey()) rest(); },

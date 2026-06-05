@@ -19,7 +19,7 @@ export function updateGameSceneFrame(delta: number) {
   syncStateFromBodies();
   zeroAllVelocities();
 
-  if (isPlaying() && !uiState.backpackOpen && !uiState.questOpen && !uiState.shopOpen && !uiState.forgeOpen && !uiState.magicOpen) {
+  if (isPlaying() && !uiState.backpackOpen && !uiState.questOpen && !uiState.shopOpen && !uiState.forgeOpen && !uiState.magicOpen && !uiState.characterOpen && !uiState.careerOpen) {
     if (runtime.hitStopTimer > 0) {
       runtime.hitStopTimer = Math.max(0, runtime.hitStopTimer - dt);
     } else {

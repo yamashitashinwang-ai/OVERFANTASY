@@ -10,8 +10,8 @@
 // the codebase reads via `registry.get()`, the legacy state object can shed
 // these fields entirely.
 //
-// Reference pattern: see ui/stats.js for how a UI module could swap from
-// `state.player.hp` to `bus.on('player:stats')` (which we emit on change).
+// UI modules can subscribe to `bus.on('player:stats')` instead of polling
+// `state.player.hp` directly.
 
 import { bus, Events } from './events.ts';
 import type Phaser from 'phaser';

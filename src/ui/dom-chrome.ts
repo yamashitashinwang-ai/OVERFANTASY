@@ -1,5 +1,5 @@
-// DOM chrome — i18n-driven panel labels and cache invalidation. Touches the
-// document directly because the sidebar/legend live in index.html.
+// DOM chrome — i18n-driven document labels, panel cache invalidation, and
+// runtime modal cleanup.
 
 import { t, languageOptions, currentLanguage } from '../domain/i18n.ts';
 import { htmlCache } from './cache.ts';
@@ -12,26 +12,6 @@ export function applyLanguage() {
   const option = languageOptions.find(item => item.id === currentLanguage()) || languageOptions[0];
   document.documentElement.lang = option.htmlLang;
   document.title = t('document.title');
-  const titleEl = document.querySelector('.panel header h1');
-  if (titleEl) titleEl.textContent = t('side.title');
-  const legendRows = document.querySelectorAll('.legend div');
-  if (legendRows[0]) legendRows[0].innerHTML = `<span class="dot player"></span>${t('legend.actor')}`;
-  if (legendRows[1]) legendRows[1].innerHTML = `<span class="square"></span>${t('legend.building')}`;
-  if (legendRows[2]) legendRows[2].innerHTML = `<span class="tri"></span>${t('legend.pickup')}`;
-  const buttonLabels = {
-    btnTalk: 'action.talk',
-    btnAttack: 'action.attack',
-    btnDefend: 'action.defend',
-    btnDodge: 'action.dodge',
-    btnGift: 'action.gift',
-    btnRest: 'action.rest',
-    btnBackpack: 'action.backpack',
-    btnMagic: 'action.magic'
-  };
-  for (const [id, key] of Object.entries(buttonLabels)) {
-    const button = document.getElementById(id);
-    if (button) button.textContent = t(key);
-  }
 }
 
 export function clearLanguageRenderCaches() {
@@ -42,7 +22,8 @@ export function clearLanguageRenderCaches() {
   htmlCache.shop = '';
   htmlCache.forge = '';
   htmlCache.magic = '';
-  htmlCache.gear = '';
+  htmlCache.character = '';
+  htmlCache.career = '';
 }
 
 export function resetRuntimeUi() {
@@ -56,6 +37,10 @@ export function resetRuntimeUi() {
   if (get.forgePanelEl) get.forgePanelEl.classList.add('hidden');
   uiState.magicOpen = false;
   if (get.magicPanelEl) get.magicPanelEl.classList.add('hidden');
+  uiState.characterOpen = false;
+  if (get.characterPanelEl) get.characterPanelEl.classList.add('hidden');
+  uiState.careerOpen = false;
+  if (get.careerPanelEl) get.careerPanelEl.classList.add('hidden');
   uiState.corruptionChoiceOpen = false;
   if (get.pauseMenuEl) get.pauseMenuEl.classList.add('hidden');
   if (get.mainMenuEl) get.mainMenuEl.classList.add('hidden');
@@ -64,8 +49,9 @@ export function resetRuntimeUi() {
   htmlCache.shop = '';
   htmlCache.forge = '';
   htmlCache.magic = '';
+  htmlCache.character = '';
+  htmlCache.career = '';
   htmlCache.pause = '';
-  htmlCache.gear = '';
   runtime.bowCharge = null;
   flyingArrows.length = 0;
   uiState.magicPanelTitle = '魔法';
@@ -74,9 +60,6 @@ export function resetRuntimeUi() {
 }
 
 registerGameFlowUiHandlers({
-  clearLogPanel() {
-    if (get.logEl) get.logEl.innerHTML = '';
-  },
   clearToast() {
     if (get.toastEl) get.toastEl.textContent = '';
   },

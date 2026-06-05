@@ -9,6 +9,7 @@ import type { ActorState, PendingMagicCast, PetState, PlayerState } from '../typ
 import { knowsMagic } from './knowledge.ts';
 import { closestEnemyAtPoint, friendlyAtPoint, magicCastPoint, magicTargetFilter } from './targets.ts';
 import { damageByMagic, startMagicEffect } from './effects.ts';
+import { awardMagicEffectiveProficiency, tryAwardSurvivalProficiency } from '../proficiency.ts';
 
 const { magicCatalog } = DATA;
 
@@ -83,6 +84,10 @@ export function resolveMagicCast(cast: PendingMagicCast) {
     const heal = applyRaceFinalAmount(spell.heal, raceDamageMultiplier("magic"));
     target.hp = Math.min(target.maxHp, target.hp + heal);
     startMagicEffect({ id: cast.spellId, ...spell }, target.x, target.y, spell.radius);
+    if (target.hp > before) {
+      awardMagicEffectiveProficiency();
+      if (target === state.player) tryAwardSurvivalProficiency();
+    }
     log(`施放${spell.name}，${target === state.player ? "自己" : target.name}回复${Math.ceil(target.hp - before)}点 HP。`);
     return;
   }
@@ -94,11 +99,17 @@ export function resolveMagicCast(cast: PendingMagicCast) {
       return;
     }
     const dealt = damageByMagic(target, spell.damage, { id: cast.spellId, ...spell });
+    if (dealt > 0) awardMagicEffectiveProficiency();
     log(`施放${spell.name}命中${target.name}，造成${dealt}点伤害。`);
     return;
   }
   if (spell.kind === "zone") {
-    startMagicEffect({ id: cast.spellId, ...spell }, point.x, point.y, spell.radius);
+    const effect = startMagicEffect({ id: cast.spellId, ...spell }, point.x, point.y, spell.radius);
+    const activeTargets = state.entities.filter(e => magicTargetFilter(e) && Math.hypot(e.x - point.x, e.y - point.y) <= spell.radius);
+    if (activeTargets.length > 0) {
+      effect.proficiencyAwarded = true;
+      awardMagicEffectiveProficiency();
+    }
     log(`施放${spell.name}，寒雾在指定位置扩散。`);
     return;
   }
@@ -106,5 +117,6 @@ export function resolveMagicCast(cast: PendingMagicCast) {
   let dealt = 0;
   for (const e of [...affected]) dealt = damageByMagic(e, spell.damage, { id: cast.spellId, ...spell });
   startMagicEffect({ id: cast.spellId, ...spell }, point.x, point.y, spell.radius);
+  if (affected.length > 0) awardMagicEffectiveProficiency();
   log(`施放${spell.name}，${affected.length}个目标受到${dealt || applyRaceFinalAmount(spell.damage, raceDamageMultiplier("magic"))}点伤害。`);
 }

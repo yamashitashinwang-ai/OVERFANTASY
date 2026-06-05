@@ -71,4 +71,23 @@ describe('ModalPanelScene input isolation', () => {
 
     expectPointerActionsCleared(mounted);
   });
+
+  it('swallows pointer events outside the modal panel while a modal is open', () => {
+    const mounted = mountPanelScene(createdScenes);
+    const canvas = document.createElement('canvas');
+    const outsidePointerDown = vi.fn();
+    canvas.addEventListener('pointerdown', outsidePointerDown);
+    document.body.appendChild(canvas);
+
+    mounted.scene.create();
+    armPointer(mounted.gamePointer);
+    armPointer(mounted.panelPointer);
+
+    const event = new Event('pointerdown', { bubbles: true, cancelable: true });
+    canvas.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(outsidePointerDown).not.toHaveBeenCalled();
+    expectPointerActionsCleared(mounted);
+  });
 });

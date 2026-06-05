@@ -6,12 +6,13 @@
 // can reset all entries at once on LANGUAGE_CHANGED.
 
 export const htmlCache: Record<string, string> = {
-  gear: '',
   backpack: '',
   quest: '',
   shop: '',
   forge: '',
   magic: '',
+  character: '',
+  career: '',
   menu: '',
   pause: ''
 };

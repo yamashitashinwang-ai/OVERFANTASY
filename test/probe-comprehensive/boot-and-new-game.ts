@@ -17,7 +17,11 @@ export async function runNewGamePhase(probe: ComprehensiveProbe): Promise<Canvas
   await probe.page.evaluate(() => document.querySelector('[data-menu-action="startRace"][data-race="人类"]')?.click());
   await probe.page.waitForTimeout(1800);
   probe.tally(probe.expect('race selection: no errors', probe.flushErrors() === 0));
-  const statsText = await probe.page.evaluate(() => document.getElementById('stats').innerText);
-  probe.tally(probe.expect('stats panel populated', /人类/.test(statsText)));
+  const newGameState = await probe.page.evaluate(() => ({
+    race: window.__state?.player?.race,
+    sidebarRemoved: !document.querySelector('.shell > aside')
+  }));
+  probe.tally(probe.expect('new game state populated', newGameState.race === '人类'));
+  probe.tally(probe.expect('old sidebar DOM removed', newGameState.sidebarRemoved));
   return probe.focusCanvas();
 }

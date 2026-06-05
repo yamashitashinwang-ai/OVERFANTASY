@@ -74,4 +74,5 @@ export interface MagicEffectState extends Vector2 {
   tickTimer: number;
   damagePerSecond?: number;
   slowPower?: number;
+  proficiencyAwarded?: boolean;
 }

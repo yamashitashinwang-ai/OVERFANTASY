@@ -27,11 +27,9 @@ function resetRuntimeState() {
 
 function registerCallHandlers(calls: string[]) {
   registerGameFlowUiHandlers({
-    clearLogPanel: () => calls.push('clearLog'),
     clearToast: () => calls.push('clearToast'),
     resetRuntimeUi: () => calls.push('resetUi'),
     applyLanguage: () => calls.push('applyLanguage'),
-    renderGearPanel: () => calls.push('renderGear'),
     invalidateMenuCache: () => calls.push('invalidateMenu'),
     renderMainMenu: () => calls.push('renderMainMenu')
   });
@@ -48,10 +46,8 @@ describe('game-flow UI boundary', () => {
     resetGameState('人类');
 
     expect(calls).toEqual([
-      'clearLog',
       'clearToast',
       'resetUi',
-      'renderGear',
       'applyLanguage'
     ]);
   });
@@ -69,11 +65,9 @@ describe('game-flow UI boundary', () => {
     startLoadedSave('save-load');
 
     expect(calls).toEqual([
-      'clearLog',
       'resetUi',
       'applyLanguage',
-      'rebuildDisplay',
-      'renderGear'
+      'rebuildDisplay'
     ]);
   });
 

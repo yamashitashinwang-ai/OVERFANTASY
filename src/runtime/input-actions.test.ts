@@ -43,6 +43,8 @@ describe('world action modal gates', () => {
     uiState.shopOpen = false;
     uiState.forgeOpen = false;
     uiState.magicOpen = false;
+    uiState.characterOpen = false;
+    uiState.careerOpen = false;
     state.player.corruptionChoicePending = false;
     state.player.corruptionRampageWarningTimer = 0;
     state.player.corruptionRampageTimer = 0;
@@ -63,6 +65,26 @@ describe('world action modal gates', () => {
     expect(blockWorldAction(event)).toBe(true);
     expect(worldPointerBlocked()).toBe(true);
     expect(modalKey()).toBe('backpack');
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it('blocks world actions and pointer input while the character panel is open', () => {
+    const event = new Event('click', { cancelable: true });
+    uiState.characterOpen = true;
+
+    expect(blockWorldAction(event)).toBe(true);
+    expect(worldPointerBlocked()).toBe(true);
+    expect(modalKey()).toBe('character');
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it('blocks world actions and pointer input while the career panel is open', () => {
+    const event = new Event('click', { cancelable: true });
+    uiState.careerOpen = true;
+
+    expect(blockWorldAction(event)).toBe(true);
+    expect(worldPointerBlocked()).toBe(true);
+    expect(modalKey()).toBe('career');
     expect(event.defaultPrevented).toBe(true);
   });
 });
